@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
-// Giả định backend của bạn đang chạy ở domain này. 
-// Nếu đã cài proxy trong vite.config.js, bạn có thể đổi thành chuỗi rỗng ''
-const API_BASE_URL = 'http://localhost:3000'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 function App() {
   const [users, setUsers] = useState([]);

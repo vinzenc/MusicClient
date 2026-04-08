@@ -1,16 +1,207 @@
-# React + Vite
+# 🎵 Nocturne - Music Streaming Player
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, sleek music streaming application built with **React 19**, **Vite**, and **Tailwind CSS**. Features a neon-inspired dark theme with full music player controls and API integration.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🎶 **Music Player** - Play, pause, skip controls
+- 📱 **Responsive Design** - Works on desktop and mobile
+- 🔐 **User Authentication** - Login, register, user profiles
+- 📊 **Trending Tracks** - Discover what's popular
+- ⏰ **Recently Played** - Track your listening history
+- 🌙 **Dark Theme** - Neon colors with sleek UI
+- 🔄 **Real API Integration** - All features call backend API
+- ⚡ **Fast** - Vite bundler for instant HMR
 
-## React Compiler
+## 🚀 Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Setup
+```bash
+git clone <your-repo-url>
+cd musicclient
+npm install
+```
 
-## Expanding the ESLint configuration
+### 2. Configure API
+```bash
+cp .env.local.example .env.local
+```
+Edit `.env.local` and set your backend API URL:
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Open `http://localhost:5173` in your browser
+
+### 4. Build for Production
+```bash
+npm run build
+npm run preview
+```
+
+## 📚 Documentation
+
+- **[API Setup Guide](./API_SETUP.md)** - Configure API endpoints and environment
+- **[Backend Reference](./BACKEND_API_REFERENCE.md)** - Detailed API spec for backend team
+- **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to Vercel, Netlify, or VPS
+
+## 🏗️ Project Structure
+
+```
+src/
+├── components/              # React components
+│   ├── Header.jsx           # Top navigation with user menu
+│   ├── Sidebar.jsx          # Left navigation panel
+│   ├── PlayerFooter.jsx     # Music player controls
+│   ├── TrendingSection.jsx  # Trending tracks
+│   ├── RecentlyPlayedSection.jsx  # User's recently played
+│   └── FeaturedSection.jsx  # Featured albums
+├── contexts/                # React Context API
+│   ├── AuthContext.jsx      # User authentication state
+│   └── MusicContext.jsx     # Music player state
+├── services/
+│   └── api.js              # API integration layer
+├── App.jsx                 # Root component
+├── main.jsx               # Entry point
+└── index.css              # Global styles
+```
+
+## 🎨 Tech Stack
+
+- **React 19** - UI library
+- **Vite 7** - Build tool & dev server
+- **Tailwind CSS 3** - Styling framework
+- **Material Symbols** - Icon library
+- **Context API** - State management
+
+## 🔐 Authentication
+
+The app uses Context API for auth state management. All auth endpoints are pre-configured:
+- Login/Register
+- Logout
+- Get current user
+- Automatic session restore on app load
+
+Example:
+```jsx
+import { useAuth } from './contexts/AuthContext';
+
+function MyComponent() {
+  const { user, login, logout } = useAuth();
+  
+  return user ? <div>Hello {user.name}</div> : <LoginButton />;
+}
+```
+
+## 🎵 Music Player
+
+Control music playback with pre-configured endpoints:
+```jsx
+import { useMusic } from './contexts/MusicContext';
+
+function Player() {
+  const { currentTrack, isPlaying, togglePlayPause, skipTrack } = useMusic();
+  
+  return (
+    <button onClick={togglePlayPause}>
+      {isPlaying ? 'Pause' : 'Play'}
+    </button>
+  );
+}
+```
+
+## 📝 Environment Variables
+
+Create `.env.local` from `.env.local.example`:
+
+```env
+# Backend API base URL
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+The API base URL must match your backend server URL (development, staging, or production).
+
+## 🧪 Testing
+
+Test the app with mock API responses (fallback mode):
+```bash
+npm run dev
+# The app will use mock data if backend is unavailable
+```
+
+## 📦 Build & Deploy
+
+### Build
+```bash
+npm run build
+# Output: dist/ folder with optimized assets
+```
+
+### Deploy to Vercel
+```bash
+npm i -g vercel
+vercel
+# Then set VITE_API_BASE_URL in Vercel dashboard
+```
+
+### Deploy to Netlify
+```bash
+npm i -g netlify-cli
+netlify deploy --prod
+# Then set VITE_API_BASE_URL in Netlify UI
+```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment options.
+
+## 🐛 Error Handling
+
+All API calls have built-in error handling:
+- Network errors logged to console
+- User-friendly error messages shown in UI
+- Automatic fallback to mock data in development
+
+## 🔗 Backend API
+
+Frontend expects backend API at the URL configured in `.env.local`.
+
+**Required endpoints:** See [BACKEND_API_REFERENCE.md](./BACKEND_API_REFERENCE.md)
+
+Quick checklist:
+- ✅ Auth endpoints (login, register, logout, me)
+- ✅ Track endpoints (trending, search, play, pause, skip)
+- ✅ Album endpoints (featured, details)
+- ✅ User endpoints (recently played, playlists)
+- ✅ CORS headers enabled
+
+## ✅ Checklist
+
+- [ ] Backend API ready and running
+- [ ] `.env.local` configured with correct API URL
+- [ ] `npm install` successful
+- [ ] `npm run dev` no errors
+- [ ] `npm run build` no errors
+- [ ] All API endpoints responding
+- [ ] Ready to deploy!
+
+## 🎯 Next Steps
+
+1. **Setup Backend** - Follow [BACKEND_API_REFERENCE.md](./BACKEND_API_REFERENCE.md)
+2. **Configure API URL** - Set in `.env.local`
+3. **Test Locally** - Run `npm run dev`
+4. **Deploy** - Follow [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+## 📄 License
+
+[Your License Here]
+
+## 👥 Contributing
+
+Contributions welcome! Please follow the existing code style.
+
+---
+
+**Built with ❤️ for music lovers** 🎵

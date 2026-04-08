@@ -1,13 +1,77 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>musicclient</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BEATZ - Music Client</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'navy-dark': '#070b1d',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* RESET VÀ CẤU HÌNH HIỂN THỊ */
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      min-height: 100vh;
+      /* Đổi thành min-height để nội dung dài có thể cuộn được */
+      background-color: #070b1d;
+      /* Đổ nền xanh đen để khi cuộn xuống không bị lòi màu trắng */
+
+      /* Cài đặt thanh cuộn */
+      overflow-x: hidden;
+      /* Vẫn khóa cuộn ngang để chống lỗi vệt trắng/đen 2 bên hông */
+      overflow-y: auto;
+      /* Bật lại thanh cuộn dọc */
+    }
+
+    #root {
+      width: 100% !important;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* (Tùy chọn) Làm đẹp thanh cuộn cho giống phong cách GenZ */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #070b1d;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #a855f7;
+      /* Màu tím Purple-500 của Tailwind */
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #22d3ee;
+      /* Màu xanh Cyan-400 của Tailwind */
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

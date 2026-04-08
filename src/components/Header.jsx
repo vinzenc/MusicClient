@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom'; // 1. IMPORT THÊM CÁI NÀY
 
 export default function Header() {
   const { user, logout, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const navigate = useNavigate(); // 2. KHỞI TẠO HÀM CHUYỂN TRANG
 
   // Close dropdown khi click outside
   useEffect(() => {
@@ -28,8 +31,8 @@ export default function Header() {
   };
 
   const handleLogin = () => {
-    // TODO: Mở modal/page đăng nhập khi có routing
-    console.log('TODO: Open login modal');
+    // 3. SỬA HÀM NÀY: Chuyển hướng sang trang đăng ký
+    navigate('/register');
     setDropdownOpen(false);
   };
 
@@ -114,7 +117,7 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  {/* Login for guest */}
+                  {/* Nút đăng nhập - Bấm vào sẽ kích hoạt hàm handleLogin */}
                   <button
                     onClick={handleLogin}
                     className="w-full text-left px-4 py-3 text-teal-neon hover:bg-teal-neon/10 transition-all flex items-center gap-3 font-semibold"

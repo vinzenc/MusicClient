@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom'; // 1. IMPORT THÊM CÁI NÀY
+import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
   const { user, logout, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const navigate = useNavigate(); // 2. KHỞI TẠO HÀM CHUYỂN TRANG
+  const navigate = useNavigate();
 
   // Close dropdown khi click outside
   useEffect(() => {
@@ -25,19 +25,18 @@ export default function Header() {
     try {
       await logout();
       setDropdownOpen(false);
+      navigate('/login'); // Đăng xuất xong thì đẩy về trang đăng nhập
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
 
   const handleLogin = () => {
-    // 3. SỬA HÀM NÀY: Chuyển hướng sang trang đăng ký
-    navigate('/register');
+    navigate('/login'); // Sửa lại trỏ về login cho chuẩn
     setDropdownOpen(false);
   };
 
   const handleProfile = () => {
-    // TODO: Navigate to profile page
     console.log('TODO: Navigate to profile page');
     setDropdownOpen(false);
   };
@@ -65,21 +64,32 @@ export default function Header() {
           <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-cyber rounded-full border border-synth-deep shadow-[0_0_5px_#f3ff00]"></span>
         </button>
 
-        {/* User Avatar Dropdown */}
+        {/* KHU VỰC AVATAR & TÊN NGƯỜI DÙNG */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             disabled={loading}
-            className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-teal-neon/30 hover:border-teal-neon transition-all overflow-hidden disabled:opacity-50"
+            // Sửa class ở đây: Đổi thành flex row có khoảng cách (gap-3) để chứa cả chữ và hình
+            className="flex items-center gap-3 hover:opacity-80 transition-all disabled:opacity-50 bg-synth-indigo/20 px-2 py-1.5 rounded-full border border-transparent hover:border-teal-neon/30"
           >
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name || 'User avatar'}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="material-symbols-outlined text-white/60 text-xl">person</span>
+            {/* Hình Avatar */}
+            <div className="flex items-center justify-center w-9 h-9 rounded-full border border-teal-neon/30 overflow-hidden bg-synth-indigo/50">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.username || 'User avatar'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="material-symbols-outlined text-white/60 text-lg">person</span>
+              )}
+            </div>
+
+            {/* Tên người dùng (Chỉ hiện khi biến 'user' có dữ liệu) */}
+            {user && (
+              <span className="text-sm font-semibold text-white pr-3 hidden md:block">
+                {user.username || user.name || 'Người dùng'}
+              </span>
             )}
           </button>
 
@@ -88,11 +98,14 @@ export default function Header() {
             <div className="absolute right-0 mt-2 w-48 bg-synth-indigo/95 backdrop-blur-md border border-fuchsia-neon/20 rounded-xl shadow-lg py-2 z-50">
               {user ? (
                 <>
-                  {/* User Info */}
+                  {/* User Info trong Dropdown */}
                   <div className="px-4 py-3 border-b border-fuchsia-neon/10">
-                    <p className="text-sm font-semibold text-white">{user.name}</p>
+                    <p className="text-sm font-semibold text-white">{user.username || user.name}</p>
+                    {user.email && (
+                      <p className="text-[10px] text-gray-400 truncate mt-0.5">{user.email}</p>
+                    )}
                     {user.tier && (
-                      <p className="text-xs text-yellow-cyber font-label">{user.tier.toUpperCase()}</p>
+                      <p className="text-xs text-yellow-cyber font-label mt-1">{user.tier.toUpperCase()}</p>
                     )}
                   </div>
 
@@ -112,18 +125,18 @@ export default function Header() {
                     className="w-full text-left px-4 py-2 text-white/80 hover:text-fuchsia-neon hover:bg-fuchsia-neon/10 transition-all flex items-center gap-3 border-t border-fuchsia-neon/10 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-lg">logout</span>
-                    <span>{loading ? 'Đang đăng xuất...' : 'Đăng xuất'}</span>
+                    <span>{loading ? 'Đang xuất...' : 'Đăng xuất'}</span>
                   </button>
                 </>
               ) : (
                 <>
-                  {/* Nút đăng nhập - Bấm vào sẽ kích hoạt hàm handleLogin */}
+                  {/* Nút đăng nhập/Đăng ký khi chưa login */}
                   <button
                     onClick={handleLogin}
                     className="w-full text-left px-4 py-3 text-teal-neon hover:bg-teal-neon/10 transition-all flex items-center gap-3 font-semibold"
                   >
                     <span className="material-symbols-outlined text-lg">login</span>
-                    <span>Đăng nhập & Đăng ký</span>
+                    <span>Đăng nhập / Đăng ký</span>
                   </button>
                 </>
               )}

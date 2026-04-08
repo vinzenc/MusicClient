@@ -1,87 +1,41 @@
-import { createContext, useContext, useState, useEffect } from 'react';
 import { musicAPI } from '../services/api';
-
+import React, { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext();
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch current user on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        setLoading(true);
-        const userData = await musicAPI.getCurrentUser();
-        setUser(userData);
-        setError(null);
-      } catch (err) {
-        console.log('Not authenticated:', err.message);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = async (email, password) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await musicAPI.login(email, password);
-      setUser(response.user);
-      return response;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const register = async (email, password, name) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await musicAPI.register(email, password, name);
-      setUser(response.user);
-      return response;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setLoading(true);
-      await musicAPI.logout();
-      setUser(null);
-      setError(null);
-    } catch (err) {
-      console.error('Logout error:', err);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
+};
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // 1. Vừa mở web lên là chạy vào LocalStorage tìm xem trước đó có đăng nhập chưa
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser)); // Tìm thấy thì set luôn tên cho Header
+    }
+    setLoading(false);
+  }, []);
+
+  // 2. Hàm xử lý khi người dùng login thành công
+  const login = (userData) => {
+    setUser(userData); // Cập nhật state để Header tự động đổi giao diện
+  };
+
+  // 3. Hàm xử lý đăng xuất
+  const logout = () => {
+    setUser(null); // Xóa state
+    localStorage.removeItem('token'); // Xóa bộ nhớ
+    localStorage.removeItem('user');
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };

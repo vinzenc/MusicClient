@@ -1,80 +1,71 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Headset, Music4, ShieldCheck, Loader2 } from 'lucide-react';
+import { Mail, Lock, Headset, Music4, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const Register = () => {
+import { useAuth } from '../contexts/AuthContext';
+const Login = () => {
     const navigate = useNavigate();
-
-    // 1. Tạo state để lưu dữ liệu người dùng nhập
+    const { login } = useAuth();
+    // 1. State lưu dữ liệu đăng nhập (Chỉ cần Email và Password)
     const [formData, setFormData] = useState({
-        username: '',
         email: '',
-        password: '',
-        confirmPassword: ''
+        password: ''
     });
 
-    // 2. Tạo state để xử lý trạng thái hiển thị (đang tải, lỗi, thành công)
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Hàm cập nhật dữ liệu khi người dùng gõ vào ô input
+    // Cập nhật dữ liệu khi gõ
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
-        // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
         if (message.text) setMessage({ type: '', text: '' });
     };
 
-    // Hàm xử lý khi bấm nút Đăng ký
+    // 2. Hàm gọi API Đăng nhập
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Ngăn trang web tải lại
+        e.preventDefault();
 
-        // Validate cơ bản: Kiểm tra nhập đủ và mật khẩu khớp
-        if (!formData.username || !formData.email || !formData.password) {
-            setMessage({ type: 'error', text: 'Vui lòng điền đầy đủ thông tin!' });
-            return;
-        }
-        if (formData.password !== formData.confirmPassword) {
-            setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp!' });
+        if (!formData.email || !formData.password) {
+            setMessage({ type: 'error', text: 'Vui lòng nhập Email và Mật khẩu!' });
             return;
         }
 
         setIsLoading(true);
 
         try {
-            // GỌI API ĐĂNG KÝ
-            const response = await fetch('https://musicapi-376j.onrender.com/auth/register', {
+            const response = await fetch('https://musicapi-376j.onrender.com/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                // Gửi dữ liệu lên API (Không gửi confirmPassword)
                 body: JSON.stringify({
-                    name: formData.username,
                     email: formData.email,
                     password: formData.password
                 })
             });
 
             const data = await response.json();
+            if (data.success) {
+                // Lưu vào bộ nhớ máy
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
 
-            if (response.ok) {
-                // Nếu API trả về thành công
-                setMessage({ type: 'success', text: 'Đăng ký thành công! Đang chuyển hướng...' });
+                // GỌI HÀM NÀY ĐỂ BÁO CHO HEADER BIẾT LÀ ĐÃ ĐĂNG NHẬP
+                login(data.user);
 
-                // Tự động chuyển sang trang đăng nhập sau 2 giây
+                setMessage({ type: 'success', text: data.message || 'Đăng nhập thành công! Đang vào app...' });
+
                 setTimeout(() => {
-                    navigate('/login'); // Thay '/login' bằng đường dẫn trang đăng nhập của bạn nếu khác
-                }, 2000);
+                    navigate('/');
+                }, 1500);
             } else {
-                // Nếu API báo lỗi (VD: trùng email, trùng username)
-                setMessage({ type: 'error', text: data.message || 'Đăng ký thất bại. Vui lòng thử lại!' });
+                setMessage({ type: 'error', text: data.message || 'Sai thông tin đăng nhập!' });
             }
         } catch (error) {
-            console.error('Lỗi API:', error);
-            setMessage({ type: 'error', text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' });
+            console.error('Lỗi API Đăng nhập:', error);
+            setMessage({ type: 'error', text: 'Lỗi máy chủ. Vui lòng thử lại sau!' });
         } finally {
             setIsLoading(false);
         }
@@ -99,7 +90,7 @@ const Register = () => {
 
             {/* Header */}
             <header className="flex justify-between items-center py-6 px-8 md:px-16 relative z-10 w-full">
-                <div className="text-3xl font-black italic tracking-tighter">
+                <div className="text-3xl font-black italic tracking-tighter cursor-pointer" onClick={() => navigate('/')}>
                     <span className="text-cyan-400">NOCTURN</span><span className="text-purple-400">Z</span>
                 </div>
                 <nav className="hidden md:flex space-x-10 text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">
@@ -120,17 +111,17 @@ const Register = () => {
                             <Headset size={300} className="text-purple-400 relative z-10 drop-shadow-[0_0_50px_rgba(217,70,239,0.3)]" />
                             <div className="absolute -top-6 -right-6 animate-bounce text-cyan-400"><Music4 size={48} /></div>
                         </div>
-                        <h2 className="text-7xl font-black italic bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mt-6 tracking-tighter">
-                            NOC TURNE
+                        <h2 className="text-7xl font-black italic bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mt-6 tracking-tighter uppercase">
+                            Welcome Back
                         </h2>
                     </div>
 
-                    {/* Cột Phải: Form Đăng ký */}
+                    {/* Cột Phải: Form Đăng nhập */}
                     <div className="flex justify-center md:justify-end">
                         <div className="bg-[#101429]/60 backdrop-blur-3xl border border-white/10 p-10 rounded-[2.5rem] w-full max-w-[420px] shadow-2xl border-t-white/20">
-                            <h1 className="text-2xl font-black uppercase italic text-center mb-6 tracking-widest">Đăng ký thành viên</h1>
+                            <h1 className="text-2xl font-black uppercase italic text-center mb-6 tracking-widest">Đăng nhập</h1>
 
-                            {/* HIỂN THỊ THÔNG BÁO LỖI HOẶC THÀNH CÔNG TẠI ĐÂY */}
+                            {/* HIỂN THỊ THÔNG BÁO LỖI/THÀNH CÔNG */}
                             {message.text && (
                                 <div className={`mb-4 p-3 rounded-lg text-xs font-bold text-center uppercase tracking-widest ${message.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                     }`}>
@@ -138,72 +129,62 @@ const Register = () => {
                                 </div>
                             )}
 
-                            {/* THÊM onSubmit={handleSubmit} VÀO FORM */}
-                            <form className="space-y-4" onSubmit={handleSubmit}>
+                            <form className="space-y-5" onSubmit={handleSubmit}>
+                                {/* Input Email */}
                                 <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400/50" size={18} />
-                                    <input
-                                        type="text"
-                                        name="username" // Thêm name
-                                        value={formData.username} // Ràng buộc value
-                                        onChange={handleChange} // Lắng nghe thay đổi
-                                        placeholder="TÊN ĐĂNG NHẬP"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-cyan-400 transition-all placeholder:text-gray-500"
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400/50" size={18} />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400/50" size={18} />
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
                                         placeholder="ĐỊA CHỈ EMAIL"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-400 transition-all placeholder:text-gray-500"
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400/50" size={18} />
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder="MẬT KHẨU"
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-cyan-400 transition-all placeholder:text-gray-500"
                                     />
                                 </div>
-                                <div className="relative">
-                                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400/50" size={18} />
-                                    <input
-                                        type="password"
-                                        name="confirmPassword"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                        placeholder="XÁC NHẬN MẬT KHẨU"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-400 transition-all placeholder:text-gray-500"
-                                    />
+
+                                {/* Input Password */}
+                                <div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400/50" size={18} />
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="MẬT KHẨU"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-400 transition-all placeholder:text-gray-500"
+                                        />
+                                    </div>
+
+                                    {/* Link Quên mật khẩu */}
+                                    <div className="flex justify-end mt-2">
+                                        <a href="#" className="text-[10px] text-cyan-400 hover:text-white transition-colors font-bold uppercase tracking-widest">
+                                            Quên mật khẩu?
+                                        </a>
+                                    </div>
                                 </div>
 
-                                {/* NÚT SUBMIT: Thay đổi trạng thái khi đang tải */}
+                                {/* Nút Submit */}
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-navy-dark font-black py-4 rounded-2xl mt-6 hover:scale-105 transition-all shadow-lg shadow-cyan-500/20 uppercase tracking-widest text-xs flex justify-center items-center disabled:opacity-70 disabled:hover:scale-100"
+                                    className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-navy-dark font-black py-4 rounded-2xl mt-4 hover:scale-105 transition-all shadow-lg shadow-cyan-500/20 uppercase tracking-widest text-xs flex justify-center items-center disabled:opacity-70 disabled:hover:scale-100"
                                 >
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="animate-spin mr-2" size={18} />
-                                            ĐANG XỬ LÝ...
+                                            ĐANG VÀO APP...
                                         </>
                                     ) : (
-                                        "Bắt đầu quẩy"
+                                        "Đăng Nhập Ngay"
                                     )}
                                 </button>
                             </form>
 
+                            {/* Nút chuyển sang trang đăng ký */}
                             <p className="mt-8 text-center text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                                Đã có tài khoản? <span onClick={() => navigate('/login')} className="text-cyan-400 cursor-pointer underline underline-offset-4 hover:text-white transition-colors">Đăng nhập</span>
+                                Chưa có tài khoản? <span onClick={() => navigate('/register')} className="text-purple-400 cursor-pointer underline underline-offset-4 hover:text-white transition-colors">Đăng ký</span>
                             </p>
                         </div>
                     </div>
@@ -218,4 +199,4 @@ const Register = () => {
     );
 };
 
-export default Register;
+export default Login;

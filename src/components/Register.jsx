@@ -43,7 +43,7 @@ const Register = () => {
                             <div className="absolute -top-6 -right-6 animate-bounce text-cyan-400"><Music4 size={48} /></div>
                         </div>
                         <h2 className="text-7xl font-black italic bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mt-6 tracking-tighter">
-                            GENZ VIBES
+                            NOCTURNE
                         </h2>
                     </div>
 
@@ -85,7 +85,7 @@ const Register = () => {
 
             {/* 4. Footer */}
             <footer className="py-6 text-center text-[10px] font-bold text-gray-600 tracking-[0.4em] relative z-10 uppercase">
-                &copy; 2026 BEATZ MUSIC SERVICE. FULLSCREEN EDITION.
+                &copy; 2026 NOCTURNE MUSIC SERVICE. FULLSCREEN EDITION.
             </footer>
         </div>
     );

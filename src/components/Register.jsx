@@ -22,7 +22,7 @@ const Register = () => {
             {/* 2. Header */}
             <header className="flex justify-between items-center py-6 px-8 md:px-16 relative z-10 w-full">
                 <div className="text-3xl font-black italic tracking-tighter">
-                    <span className="text-cyan-400">BEAT</span><span className="text-purple-400">Z</span>
+                    <span className="text-cyan-400">Nocturne</span>
                 </div>
                 <nav className="hidden md:flex space-x-10 text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">
                     <a href="#" className="hover:text-cyan-400 transition-colors">Khám phá</a>

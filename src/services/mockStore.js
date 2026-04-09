@@ -370,19 +370,40 @@ export const pendingStore = {
 // ════════════════════════════════════════════════════════════════
 //  DEEZER MOCK (Tìm kiếm nhạc)
 // ════════════════════════════════════════════════════════════════
-export const deezerMockAPI = {
+export const deezerAPI = {
   search: async (q) => {
-    await delay(400);
-    const query = q.toLowerCase();
-    const data = tracks.filter(t =>
-      t.title.toLowerCase().includes(query) ||
-      t.artist.toLowerCase().includes(query)
-    );
-    return { data: data.length ? data.map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) : tracks.slice(0, 8).map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) };
+    try {
+      const r = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}`);
+      const payload = await r.json();
+      if (payload.error) throw new Error(payload.error.message);
+      const data = payload.data || [];
+      return {
+        data: data.map(t => ({
+          id: t.id, title: t.title, artist: t.artist?.name || '', album: t.album?.title || '',
+          duration: t.duration || 0, cover: t.album?.cover_medium || '', preview: t.preview || ''
+        }))
+      };
+    } catch (e) {
+      console.error('Deezer search error:', e);
+      return { data: [] };
+    }
   },
   chart: async () => {
-    await delay(400);
-    return { data: tracks.slice(0, 8).map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) };
+    try {
+      const r = await fetch(`https://api.deezer.com/chart`);
+      const payload = await r.json();
+      if (payload.error) throw new Error(payload.error.message);
+      const data = payload.tracks?.data || [];
+      return {
+        data: data.map(t => ({
+          id: t.id, title: t.title, artist: t.artist?.name || '', album: t.album?.title || '',
+          duration: t.duration || 0, cover: t.album?.cover_medium || '', preview: t.preview || ''
+        }))
+      };
+    } catch (e) {
+      console.error('Deezer chart error:', e);
+      return { data: [] };
+    }
   },
   addToLibrary: async (t) => {
     await delay(300);

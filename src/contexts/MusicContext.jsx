@@ -65,13 +65,17 @@ export function MusicProvider({ children }) {
     }
   }, [repeat, queueIndex, queue, shuffle]);
 
-  // ── Load initial data ──────────────────────────────────────
-  useEffect(() => {
+  const loadHomeData = useCallback(() => {
     trackStore.getTrending().then(setTrendingTracks);
     trackStore.getFeatured().then(setFeaturedTracks);
     libraryStore.getAll().then(setLibrary);
     playlistStore.getAll().then(setPlaylists);
   }, []);
+
+  // ── Load initial data ──────────────────────────────────────
+  useEffect(() => {
+    loadHomeData();
+  }, [loadHomeData]);
 
   // ── Player Controls ────────────────────────────────────────
 
@@ -241,7 +245,9 @@ export function MusicProvider({ children }) {
       playTrack, skipTrack, togglePlayPause,
       // Data
       trendingTracks, featuredTracks, recentlyPlayed,
-      library, playlists,
+      library,
+      playlists,
+      loadHomeData,
       // Actions
       addToLibrary, removeFromLibrary, isInLibrary,
       createPlaylist, addToPlaylist, removeFromPlaylist,

@@ -332,10 +332,23 @@ export const pendingStore = {
       pending = pending.map(p => p.id === id ? { ...p, status: 'approved' } : p);
       const nid = nextId('track');
       tracks = [{ id: nid, ...item, status: 'active', created_at: new Date().toISOString() }, ...tracks];
+      
+      if (item.submitted_by_name) {
+        notificationStore.add(item.submitted_by_name, `Bài hát "${item.title}" của bạn đã được duyệt và thêm vào Thư viện hệ thống!`, 'success');
+      }
     }
     return { success: true };
   },
-  reject: async (id, admin_note = '') => { await delay(); pending = pending.map(p => p.id === id ? { ...p, status: 'rejected', admin_note } : p); return { success: true }; },
+  reject: async (id, admin_note = '') => { 
+    await delay(); 
+    const item = pending.find(p => p.id === id);
+    pending = pending.map(p => p.id === id ? { ...p, status: 'rejected', admin_note } : p); 
+    
+    if (item && item.submitted_by_name) {
+      notificationStore.add(item.submitted_by_name, `Bài hát "${item.title}" bị từ chối. Lý do: ${admin_note}`, 'error');
+    }
+    return { success: true }; 
+  },
   remove: async (id) => { await delay(); pending = pending.filter(p => p.id !== id); return { success: true }; },
   submit: async (data) => {
     await delay();
@@ -378,4 +391,30 @@ export const deezerMockAPI = {
     tracks = [newTrack, ...tracks];
     return newTrack;
   },
+};
+
+// ════════════════════════════════════════════════════════════════
+//  NOTIFICATIONS STORE
+// ════════════════════════════════════════════════════════════════
+let notifications = [];
+let notifId = 1;
+
+export const notificationStore = {
+  add: (userName, message, type = 'info') => {
+    notifications = [{ id: notifId++, userName, message, type, isRead: false, created_at: new Date().toISOString() }, ...notifications];
+  },
+  getByUser: async (userName) => {
+    await delay(50);
+    return notifications.filter(n => n.userName === userName);
+  },
+  markAsRead: async (id) => {
+    await delay(50);
+    notifications = notifications.map(n => n.id === id ? { ...n, isRead: true } : n);
+    return { success: true };
+  },
+  markAllAsRead: async (userName) => {
+    await delay(50);
+    notifications = notifications.map(n => n.userName === userName ? { ...n, isRead: true } : n);
+    return { success: true };
+  }
 };

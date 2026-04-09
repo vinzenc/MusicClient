@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pendingStore } from '../../services/mockStore';
+import { useMusic } from '../../contexts/MusicContext';
 
 function formatDur(sec) {
     if (!sec) return '—';
@@ -22,6 +23,7 @@ function Toast({ msg, type, onDone }) {
 }
 
 export default function AdminPendingPage() {
+    const { loadHomeData } = useMusic();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [statusTab, setStatusTab] = useState('pending');
@@ -44,6 +46,7 @@ export default function AdminPendingPage() {
         await pendingStore.approve(id);
         notify(`Đã duyệt "${title}" và thêm vào thư viện!`);
         load();
+        loadHomeData(); // Update global context for home page
     };
 
     const handleReject = async () => {
@@ -53,6 +56,7 @@ export default function AdminPendingPage() {
         setRejectId(null);
         setNote('');
         load();
+        loadHomeData();
     };
 
     const handleDelete = async (id, title) => {

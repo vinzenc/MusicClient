@@ -9,9 +9,8 @@ function fmtTime(sec) {
 function DeezerTrackCard({ track, index, onPlay, isPlaying, isActive }) {
   return (
     <div
-      className={`flex items-center gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border ${
-        isActive ? 'bg-fuchsia-neon/10 border-fuchsia-neon/30' : 'border-transparent hover:bg-white/5 hover:border-white/10'
-      }`}
+      className={`flex items-center gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border ${isActive ? 'bg-fuchsia-neon/10 border-fuchsia-neon/30' : 'border-transparent hover:bg-white/5 hover:border-white/10'
+        }`}
       onClick={() => onPlay(track)}
     >
       <div className="w-8 text-center flex-shrink-0">
@@ -57,7 +56,7 @@ export default function DeezerSection() {
         const r = await fetch(proxyUrl);
         if (!r.ok) throw new Error('Network error');
         const data = await r.json();
-        
+
         // Map deezer track structure to our standard track structure
         const mappedTracks = data.tracks.data.map(dt => ({
           // using dz_ prefix to avoid ID collisions with our mock array
@@ -71,7 +70,7 @@ export default function DeezerSection() {
           deezer_id: String(dt.id),
           genre: 'Deezer'
         }));
-        
+
         setDeezerTracks(mappedTracks);
       } catch (err) {
         console.error(err);

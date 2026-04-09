@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { deezerMockAPI } from '../../services/mockStore';
+import { deezerAPI } from '../../services/mockStore';
 
 function fmt(sec) { return sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : ''; }
 
@@ -22,7 +22,7 @@ export default function AdminDeezerPage() {
         if (!query.trim()) return;
         setLoading(true);
         try {
-            const r = await deezerMockAPI.search(query);
+            const r = await deezerAPI.search(query);
             setResults(r.data || []);
         } catch (e) { notify(e.message, 'err'); }
         finally { setLoading(false); }
@@ -31,7 +31,7 @@ export default function AdminDeezerPage() {
     const loadChart = async () => {
         setLoading(true);
         try {
-            const r = await deezerMockAPI.chart();
+            const r = await deezerAPI.chart();
             setResults(r.data || []);
             notify('Đã tải top charts ✓');
         } catch (e) { notify(e.message, 'err'); }
@@ -40,7 +40,7 @@ export default function AdminDeezerPage() {
 
     const addTrack = async (t) => {
         try {
-            await deezerMockAPI.addToLibrary(t);
+            await deezerAPI.addToLibrary(t);
             setAdded(s => new Set([...s, t.id]));
             notify(`Đã thêm "${t.title}" vào thư viện ✓`);
         } catch (e) { notify(e.message, 'err'); }
@@ -62,8 +62,8 @@ export default function AdminDeezerPage() {
                 </div>
             )}
 
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0', marginBottom: 8 }}>🔍 Tìm nhạc (Mock Deezer)</h1>
-            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>Dữ liệu mẫu — thêm nhạc sẽ được lưu vào thư viện mock</p>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0', marginBottom: 8 }}>🔍 Deezer API Search</h1>
+            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>Dữ liệu thực từ Deezer API. Bạn có thể tìm kiếm và phát trực tiếp.</p>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
                 <input placeholder="Tìm tên bài, nghệ sĩ..." value={query}
@@ -84,7 +84,7 @@ export default function AdminDeezerPage() {
             {results.length === 0 && !loading && (
                 <div style={{ textAlign: 'center', padding: 60, color: '#4b5563' }}>
                     <div style={{ fontSize: 48 }}>🎵</div>
-                    <p style={{ marginTop: 12 }}>Tìm kiếm để xem nhạc mẫu</p>
+                    <p style={{ marginTop: 12 }}>Tìm kiếm nhạc từ API Deezer</p>
                     <button onClick={loadChart} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 600, cursor: 'pointer' }}>
                         🏆 Xem Top Charts
                     </button>

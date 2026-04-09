@@ -1,16 +1,36 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useMusic } from '../contexts/MusicContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { notificationStore } from '../services/mockStore';
+import { notificationStore, deezerAPI } from '../services/mockStore';
+
+// custom debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
+  const { play } = useMusic();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const debouncedQuery = useDebounce(searchQuery, 500);
+
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
+  const searchRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -22,6 +42,9 @@ export default function Header() {
       }
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setNotifOpen(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
       }
     };
 
@@ -42,7 +65,42 @@ export default function Header() {
     // Poll every 5s for demo
     const intv = setInterval(loadNotifs, 5000);
     return () => clearInterval(intv);
-  }, [user]);
+  }, [user, loadNotifs]);
+
+  // Handle Deezer Search
+  useEffect(() => {
+    const doSearch = async () => {
+      if (!debouncedQuery.trim()) {
+        setSearchResults([]);
+        setIsSearching(false);
+        return;
+      }
+      setIsSearching(true);
+      try {
+        const res = await deezerAPI.search(debouncedQuery);
+        setSearchResults(res.data || []);
+        setSearchOpen(true);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+    doSearch();
+  }, [debouncedQuery]);
+
+  const handlePlaySearch = (track) => {
+    const standardTrack = {
+      ...track,
+      id: `dz_${track.id}`,
+      deezer_id: String(track.id),
+      cover_url: track.cover,
+      preview_url: track.preview,
+      genre: 'Deezer Search'
+    };
+    play(standardTrack, searchResults.map(t => ({...t, id: `dz_${t.id}`, cover_url: t.cover, preview_url: t.preview})));
+    setSearchOpen(false);
+  };
 
   const handleMarkAsRead = async (id) => {
     await notificationStore.markAsRead(id);
@@ -78,17 +136,61 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 right-0 w-[calc(100%-16rem)] flex justify-between items-center px-12 h-20 z-40 bg-transparent font-['Manrope'] font-medium">
-      <div className="flex-1 max-w-xl">
-        <div className="relative group">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-neon transition-colors">
+      <div className="flex-1 max-w-xl relative" ref={searchRef}>
+        <div className="relative group z-50">
+          <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${searchQuery ? 'text-teal-neon' : 'text-white/40 group-focus-within:text-teal-neon'}`}>
             search
           </span>
           <input
-            className="w-full bg-synth-indigo/30 border border-fuchsia-neon/20 rounded-full py-2.5 pl-12 pr-4 text-sm focus:ring-1 focus:ring-teal-neon/50 focus:bg-synth-indigo/50 font-label placeholder:text-white/20 transition-all text-white outline-none"
-            placeholder="Search artists, tracks, or mood..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => { if(searchResults.length > 0) setSearchOpen(true); }}
+            className="w-full bg-synth-indigo/30 border border-fuchsia-neon/20 rounded-full py-2.5 pl-12 pr-10 text-sm focus:ring-1 focus:ring-teal-neon/50 focus:bg-synth-indigo/50 font-label placeholder:text-white/20 transition-all text-white outline-none"
+            placeholder="Tìm bài hát, ca sĩ trên Deezer..."
             type="text"
           />
+          {searchQuery && (
+            <button 
+              onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors flex items-center"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
         </div>
+
+        {/* --- Search Results Dropdown --- */}
+        {searchOpen && searchQuery && (
+          <div className="absolute top-12 left-0 right-0 bg-[#181d36] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl overflow-hidden py-2 z-40 max-h-96 flex flex-col">
+            <div className="px-4 py-2 border-b border-white/5 text-xs text-fuchsia-neon font-bold uppercase tracking-widest flex items-center justify-between">
+              <span>Đang tìm kiếm trên Deezer</span>
+              {isSearching && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
+            </div>
+            
+            <div className="overflow-y-auto flex-1 p-2 space-y-1">
+              {!isSearching && searchResults.length === 0 ? (
+                <div className="text-center py-6 text-white/40 text-sm">Không tìm thấy bài hát nào</div>
+              ) : (
+                searchResults.map(t => (
+                  <div 
+                    key={t.id}
+                    onClick={() => handlePlaySearch(t)}
+                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer group transition-colors"
+                  >
+                    <img src={t.cover} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-bold truncate group-hover:text-teal-neon transition-colors">{t.title}</p>
+                      <p className="text-xs text-white/50 truncate">{t.artist}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-white/0 group-hover:text-teal-neon transition-colors text-[20px] mr-2">
+                      play_arrow
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-6 ml-8">

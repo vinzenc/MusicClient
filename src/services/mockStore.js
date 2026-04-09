@@ -332,22 +332,22 @@ export const pendingStore = {
       pending = pending.map(p => p.id === id ? { ...p, status: 'approved' } : p);
       const nid = nextId('track');
       tracks = [{ id: nid, ...item, status: 'active', created_at: new Date().toISOString() }, ...tracks];
-      
+
       if (item.submitted_by_name) {
         notificationStore.add(item.submitted_by_name, `Bài hát "${item.title}" của bạn đã được duyệt và thêm vào Thư viện hệ thống!`, 'success');
       }
     }
     return { success: true };
   },
-  reject: async (id, admin_note = '') => { 
-    await delay(); 
+  reject: async (id, admin_note = '') => {
+    await delay();
     const item = pending.find(p => p.id === id);
-    pending = pending.map(p => p.id === id ? { ...p, status: 'rejected', admin_note } : p); 
-    
+    pending = pending.map(p => p.id === id ? { ...p, status: 'rejected', admin_note } : p);
+
     if (item && item.submitted_by_name) {
       notificationStore.add(item.submitted_by_name, `Bài hát "${item.title}" bị từ chối. Lý do: ${admin_note}`, 'error');
     }
-    return { success: true }; 
+    return { success: true };
   },
   remove: async (id) => { await delay(); pending = pending.filter(p => p.id !== id); return { success: true }; },
   submit: async (data) => {
@@ -370,54 +370,19 @@ export const pendingStore = {
 // ════════════════════════════════════════════════════════════════
 //  DEEZER MOCK (Tìm kiếm nhạc)
 // ════════════════════════════════════════════════════════════════
-// Helper to fetch using JSONP for Deezer API to bypass CORS natively
-const fetchJsonp = (url) => {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'deezer_cb_' + Math.round(1000000 * Math.random());
-    window[callbackName] = (data) => {
-      resolve(data);
-      delete window[callbackName];
-      document.body.removeChild(script);
-    };
-    const script = document.createElement('script');
-    script.src = url + (url.includes('?') ? '&' : '?') + 'output=jsonp&callback=' + callbackName;
-    script.onerror = () => {
-      reject(new Error("JSONP request failed"));
-      delete window[callbackName];
-      document.body.removeChild(script);
-    };
-    document.body.appendChild(script);
-  });
-};
-
-export const deezerAPI = {
+export const deezerMockAPI = {
   search: async (q) => {
-    try {
-      const payload = await fetchJsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}`);
-      if (payload.error) throw new Error(payload.error.message);
-      const data = payload.data || [];
-      return { data: data.map(t => ({
-        id: t.id, title: t.title, artist: t.artist?.name || '', album: t.album?.title || '',
-        duration: t.duration || 0, cover: t.album?.cover_medium || '', preview: t.preview || ''
-      })) };
-    } catch (e) {
-      console.error('Deezer search error:', e);
-      return { data: [] };
-    }
+    await delay(400);
+    const query = q.toLowerCase();
+    const data = tracks.filter(t =>
+      t.title.toLowerCase().includes(query) ||
+      t.artist.toLowerCase().includes(query)
+    );
+    return { data: data.length ? data.map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) : tracks.slice(0, 8).map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) };
   },
   chart: async () => {
-    try {
-      const payload = await fetchJsonp(`https://api.deezer.com/chart`);
-      if (payload.error) throw new Error(payload.error.message);
-      const data = payload.tracks?.data || [];
-      return { data: data.map(t => ({
-        id: t.id, title: t.title, artist: t.artist?.name || '', album: t.album?.title || '',
-        duration: t.duration || 0, cover: t.album?.cover_medium || '', preview: t.preview || ''
-      })) };
-    } catch (e) {
-      console.error('Deezer chart error:', e);
-      return { data: [] };
-    }
+    await delay(400);
+    return { data: tracks.slice(0, 8).map(t => ({ ...t, cover: t.cover_url, preview: t.preview_url })) };
   },
   addToLibrary: async (t) => {
     await delay(300);

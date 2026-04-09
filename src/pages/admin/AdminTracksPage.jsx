@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { adminMusicAPI } from '../../services/adminApi';
+import { trackStore } from '../../services/mockStore';
 import TrackFormModal from '../../components/admin/TrackFormModal';
 
 function formatDur(sec) {
@@ -7,47 +7,70 @@ function formatDur(sec) {
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
 
+function Toast({ msg, type, onDone }) {
+    useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+    return (
+        <div style={{
+            position: 'fixed', top: 20, right: 20, zIndex: 9999,
+            padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
+            background: type === 'err' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)',
+            color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            animation: 'slideIn 0.3s ease',
+        }}>
+            {type === 'err' ? '❌ ' : '✅ '}{msg}
+        </div>
+    );
+}
+
 export default function AdminTracksPage() {
     const [tracks, setTracks] = useState([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [modal, setModal] = useState({ open: false, track: null });
-    const LIMIT = 15;
+    const [toast, setToast] = useState(null);
+    const LIMIT = 10;
+
+    const notify = (msg, type = 'ok') => setToast({ msg, type });
 
     const load = useCallback(async () => {
-        setLoading(true); setError('');
+        setLoading(true);
         try {
-            const res = await adminMusicAPI.getTracks({ search, status: statusFilter, page, limit: LIMIT });
-            setTracks(res.data || []); setTotal(res.total || 0);
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
+            const res = await trackStore.getAll({ search, status: statusFilter, page, limit: LIMIT });
+            setTracks(res.data || []);
+            setTotal(res.total || 0);
+        } finally { setLoading(false); }
     }, [search, statusFilter, page]);
 
     useEffect(() => { load(); }, [load]);
 
     const handleDelete = async (id, title) => {
         if (!confirm(`Xóa track "${title}"?`)) return;
-        try { await adminMusicAPI.deleteTrack(id); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+        await trackStore.remove(id);
+        notify(`Đã xóa "${title}"`);
+        load();
     };
 
     const handleSave = async (data) => {
-        try {
-            if (modal.track) await adminMusicAPI.editTrack(modal.track.id, data);
-            else await adminMusicAPI.addTrack(data);
-            setModal({ open: false, track: null });
-            load();
-        } catch (e) { throw e; }
+        if (modal.track) {
+            await trackStore.edit(modal.track.id, data);
+            notify('Đã cập nhật track!');
+        } else {
+            await trackStore.add(data);
+            notify('Đã thêm track mới!');
+        }
+        setModal({ open: false, track: null });
+        load();
     };
 
     const totalPages = Math.ceil(total / LIMIT);
 
     return (
         <div>
+            {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                 <div>
@@ -57,7 +80,11 @@ export default function AdminTracksPage() {
                 <button onClick={() => setModal({ open: true, track: null })} style={{
                     padding: '10px 22px', borderRadius: 10, border: 'none', cursor: 'pointer',
                     background: 'linear-gradient(135deg,#a78bfa,#7c3aed)', color: '#fff', fontWeight: 700, fontSize: 14,
-                }}>
+                    transition: 'opacity 0.2s',
+                }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
                     + Thêm track
                 </button>
             </div>
@@ -69,14 +96,12 @@ export default function AdminTracksPage() {
                     style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14, outline: 'none' }}
                 />
                 <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                    style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14 }}>
+                    style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,12,41,0.9)', color: '#e2e8f0', fontSize: 14 }}>
                     <option value="">Tất cả</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                 </select>
             </div>
-
-            {error && <div style={{ padding: 14, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', marginBottom: 16, fontSize: 14 }}>❌ {error} — Kiểm tra backend đang chạy không?</div>}
 
             {/* Table */}
             {loading ? (
@@ -85,6 +110,9 @@ export default function AdminTracksPage() {
                 <div style={{ textAlign: 'center', padding: 60, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
                     <div style={{ fontSize: 48 }}>🎵</div>
                     <p style={{ color: '#64748b', marginTop: 12 }}>Chưa có track nào</p>
+                    <button onClick={() => setModal({ open: true, track: null })} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'rgba(167,139,250,0.2)', color: '#a78bfa', fontWeight: 600, cursor: 'pointer' }}>
+                        + Thêm track đầu tiên
+                    </button>
                 </div>
             ) : (
                 <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
@@ -92,7 +120,7 @@ export default function AdminTracksPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                                    {['ID', 'Cover', 'Tên bài / Artist', 'Album', 'Thời gian', 'Trạng thái', 'Thao tác'].map(h => (
+                                    {['#', 'Cover', 'Tên bài / Artist', 'Album', 'Thời gian', 'Trạng thái', 'Thao tác'].map(h => (
                                         <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 13 }}>{h}</th>
                                     ))}
                                 </tr>
@@ -163,6 +191,8 @@ export default function AdminTracksPage() {
             {modal.open && (
                 <TrackFormModal track={modal.track} onSave={handleSave} onClose={() => setModal({ open: false, track: null })} />
             )}
+
+            <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:none } }`}</style>
         </div>
     );
 }

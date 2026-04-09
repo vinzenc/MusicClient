@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, isAdmin } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -64,6 +64,24 @@ export default function Header() {
           <span className="absolute top-0 right-0 w-2 h-2 bg-yellow-cyber rounded-full border border-synth-deep shadow-[0_0_5px_#f3ff00]"></span>
         </button>
 
+        {/* Admin Panel Button — chỉ hiện với admin */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin')}
+            title="Admin Panel"
+            className="relative flex items-center justify-center w-9 h-9 rounded-full border border-fuchsia-neon/30 bg-fuchsia-neon/10 hover:bg-fuchsia-neon/25 hover:border-fuchsia-neon/70 transition-all group shadow-[0_0_12px_rgba(255,0,255,0.15)] hover:shadow-[0_0_20px_rgba(255,0,255,0.4)]"
+          >
+            <span
+              className="material-symbols-outlined text-fuchsia-neon text-[18px] group-hover:scale-110 transition-transform"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              admin_panel_settings
+            </span>
+            {/* Pulse dot */}
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-fuchsia-neon rounded-full border-2 border-synth-deep animate-pulse shadow-[0_0_6px_rgba(255,0,255,0.8)]" />
+          </button>
+        )}
+
         {/* KHU VỰC AVATAR & TÊN NGƯỜI DÙNG */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -98,16 +116,35 @@ export default function Header() {
             <div className="absolute right-0 mt-2 w-48 bg-synth-indigo/95 backdrop-blur-md border border-fuchsia-neon/20 rounded-xl shadow-lg py-2 z-50">
               {user ? (
                 <>
-                  {/* User Info trong Dropdown */}
                   <div className="px-4 py-3 border-b border-fuchsia-neon/10">
                     <p className="text-sm font-semibold text-white">{user.username || user.name}</p>
                     {user.email && (
                       <p className="text-[10px] text-gray-400 truncate mt-0.5">{user.email}</p>
                     )}
-                    {user.tier && (
-                      <p className="text-xs text-yellow-cyber font-label mt-1">{user.tier.toUpperCase()}</p>
-                    )}
+                    {/* Role badge */}
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {user.role === 'admin' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-fuchsia-neon/20 text-fuchsia-neon font-bold tracking-wide border border-fuchsia-neon/30">ADMIN</span>
+                      )}
+                      {user.role === 'collaborator' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-neon/20 text-teal-neon font-bold tracking-wide border border-teal-neon/30">CTV</span>
+                      )}
+                      {user.tier && (
+                        <span className="text-[10px] text-yellow-cyber font-label">{user.tier.toUpperCase()}</span>
+                      )}
+                    </div>
                   </div>
+                  {/* Admin Panel — only for admin */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => { navigate('/admin'); setDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-fuchsia-neon hover:text-white hover:bg-fuchsia-neon/15 transition-all flex items-center gap-3 font-semibold border-b border-fuchsia-neon/10"
+                    >
+                      <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+                      <span>Admin Panel</span>
+                      <span className="ml-auto text-[10px] bg-fuchsia-neon/20 text-fuchsia-neon px-1.5 py-0.5 rounded">ADMIN</span>
+                    </button>
+                  )}
 
                   {/* Profile */}
                   <button

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminUserAPI } from '../../services/adminApi';
+import { userStore } from '../../services/mockStore';
 import UserFormModal from '../../components/admin/UserFormModal';
 import ChangePasswordModal from '../../components/admin/ChangePasswordModal';
 
@@ -9,48 +9,79 @@ const ROLE_COLORS = {
     user: { bg: 'rgba(100,116,139,0.15)', color: '#94a3b8' },
 };
 
+function Toast({ msg, type, onDone }) {
+    useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+    return (
+        <div style={{
+            position: 'fixed', top: 20, right: 20, zIndex: 9999,
+            padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
+            background: type === 'err' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)',
+            color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            animation: 'slideIn 0.3s ease',
+        }}>
+            {type === 'err' ? '❌ ' : '✅ '}{msg}
+        </div>
+    );
+}
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [roleFilter, setRoleFilter] = useState('');
     const [modal, setModal] = useState({ open: false, user: null });
     const [pwModal, setPwModal] = useState({ open: false, user: null });
+    const [toast, setToast] = useState(null);
     const me = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const notify = (msg, type = 'ok') => setToast({ msg, type });
 
     const load = async (role = roleFilter) => {
         setLoading(true);
-        try { const res = await adminUserAPI.getUsers(role); setUsers(res.data || []); }
-        catch (e) { console.error(e); }
-        finally { setLoading(false); }
+        const res = await userStore.getAll(role);
+        setUsers(res.data || []);
+        setLoading(false);
     };
 
     useEffect(() => { load(roleFilter); }, [roleFilter]);
 
     const handleDelete = async (id, name) => {
-        if (id === me.id) return alert('Không thể xóa chính mình!');
+        if (id === me.id) return notify('Không thể xóa chính mình!', 'err');
         if (!confirm(`Xóa user "${name}"?`)) return;
-        try { await adminUserAPI.deleteUser(id); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+        await userStore.remove(id);
+        notify(`Đã xóa user "${name}"`);
+        load();
     };
 
     const handleRoleChange = async (id, currentRole, name) => {
         const newRole = currentRole === 'user' ? 'collaborator' : 'user';
-        if (!confirm(`Thay đổi role của "${name}" thành "${newRole}"?`)) return;
-        try { await adminUserAPI.changeRole(id, newRole); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+        if (!confirm(`Đổi role của "${name}" thành "${newRole}"?`)) return;
+        await userStore.changeRole(id, newRole);
+        notify(`Đã đổi role: ${name} → ${newRole}`);
+        load();
     };
 
     const handleSave = async (data) => {
-        try {
-            if (modal.user) await adminUserAPI.editUser(modal.user.id, data);
-            else await adminUserAPI.addUser(data);
-            setModal({ open: false, user: null });
-            load();
-        } catch (e) { throw e; }
+        if (modal.user) {
+            await userStore.edit(modal.user.id, data);
+            notify('Đã cập nhật thông tin!');
+        } else {
+            await userStore.add(data);
+            notify('Đã tạo user mới!');
+        }
+        setModal({ open: false, user: null });
+        load();
+    };
+
+    const handleChangePassword = async (pw) => {
+        await userStore.changePassword(pwModal.user.id, pw);
+        notify('Đã đổi mật khẩu thành công!');
+        setPwModal({ open: false, user: null });
     };
 
     return (
         <div>
+            {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                 <div>
                     <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0' }}>👤 Quản lý người dùng</h1>
@@ -59,7 +90,11 @@ export default function AdminUsersPage() {
                 <button onClick={() => setModal({ open: true, user: null })} style={{
                     padding: '10px 22px', borderRadius: 10, border: 'none', cursor: 'pointer',
                     background: 'linear-gradient(135deg,#a78bfa,#7c3aed)', color: '#fff', fontWeight: 700, fontSize: 14,
-                }}>
+                    transition: 'opacity 0.2s',
+                }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
                     + Thêm user
                 </button>
             </div>
@@ -70,7 +105,7 @@ export default function AdminUsersPage() {
                     <button key={v} onClick={() => setRoleFilter(v)} style={{
                         padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                         background: roleFilter === v ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.05)',
-                        color: roleFilter === v ? '#a78bfa' : '#94a3b8',
+                        color: roleFilter === v ? '#a78bfa' : '#94a3b8', transition: 'all 0.2s',
                     }}>{l}</button>
                 ))}
             </div>
@@ -134,7 +169,15 @@ export default function AdminUsersPage() {
             )}
 
             {modal.open && <UserFormModal user={modal.user} onSave={handleSave} onClose={() => setModal({ open: false, user: null })} />}
-            {pwModal.open && <ChangePasswordModal user={pwModal.user} onClose={() => setPwModal({ open: false, user: null })} onSave={async (pw) => { await adminUserAPI.changePassword(pwModal.user.id, pw); setPwModal({ open: false, user: null }); }} />}
+            {pwModal.open && (
+                <ChangePasswordModal
+                    user={pwModal.user}
+                    onClose={() => setPwModal({ open: false, user: null })}
+                    onSave={handleChangePassword}
+                />
+            )}
+
+            <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:none } }`}</style>
         </div>
     );
 }

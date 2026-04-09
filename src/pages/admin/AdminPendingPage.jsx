@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
-import { adminMusicAPI } from '../../services/adminApi';
+import { pendingStore } from '../../services/mockStore';
 
 function formatDur(sec) {
     if (!sec) return '—';
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function Toast({ msg, type, onDone }) {
+    useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+    return (
+        <div style={{
+            position: 'fixed', top: 20, right: 20, zIndex: 9999,
+            padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
+            background: type === 'err' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)',
+            color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            animation: 'slideIn 0.3s ease',
+        }}>
+            {type === 'err' ? '❌ ' : '✅ '}{msg}
+        </div>
+    );
 }
 
 export default function AdminPendingPage() {
@@ -12,30 +27,39 @@ export default function AdminPendingPage() {
     const [statusTab, setStatusTab] = useState('pending');
     const [rejectId, setRejectId] = useState(null);
     const [note, setNote] = useState('');
+    const [toast, setToast] = useState(null);
+
+    const notify = (msg, type = 'ok') => setToast({ msg, type });
 
     const load = async (s = statusTab) => {
         setLoading(true);
-        try { const res = await adminMusicAPI.getPending(s); setItems(res.data || []); }
-        catch (e) { console.error(e); }
-        finally { setLoading(false); }
+        const res = await pendingStore.getAll(s);
+        setItems(res.data || []);
+        setLoading(false);
     };
 
     useEffect(() => { load(statusTab); }, [statusTab]);
 
-    const handleApprove = async (id) => {
-        try { await adminMusicAPI.approve(id); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+    const handleApprove = async (id, title) => {
+        await pendingStore.approve(id);
+        notify(`Đã duyệt "${title}" và thêm vào thư viện!`);
+        load();
     };
 
     const handleReject = async () => {
-        try { await adminMusicAPI.reject(rejectId, note); setRejectId(null); setNote(''); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+        const item = items.find(i => i.id === rejectId);
+        await pendingStore.reject(rejectId, note);
+        notify(`Đã từ chối "${item?.title}"`);
+        setRejectId(null);
+        setNote('');
+        load();
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, title) => {
         if (!confirm('Xóa bản đề xuất này?')) return;
-        try { await adminMusicAPI.deletePending(id); load(); }
-        catch (e) { alert('Lỗi: ' + e.message); }
+        await pendingStore.remove(id);
+        notify(`Đã xóa đề xuất "${title}"`);
+        load();
     };
 
     const TABS = [
@@ -46,6 +70,8 @@ export default function AdminPendingPage() {
 
     return (
         <div>
+            {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+
             <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0', marginBottom: 24 }}>⏳ Nhạc đề xuất</h1>
 
             {/* Tabs */}
@@ -54,7 +80,7 @@ export default function AdminPendingPage() {
                     <button key={t.value} onClick={() => setStatusTab(t.value)} style={{
                         padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                         background: statusTab === t.value ? 'linear-gradient(135deg,#a78bfa,#7c3aed)' : 'transparent',
-                        color: statusTab === t.value ? '#fff' : '#94a3b8',
+                        color: statusTab === t.value ? '#fff' : '#94a3b8', transition: 'all 0.2s',
                     }}>{t.label}</button>
                 ))}
             </div>
@@ -73,7 +99,11 @@ export default function AdminPendingPage() {
                             background: 'rgba(255,255,255,0.04)', borderRadius: 14,
                             border: '1px solid rgba(255,255,255,0.07)',
                             padding: 16, display: 'flex', gap: 16, alignItems: 'center',
-                        }}>
+                            transition: 'border-color 0.2s',
+                        }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(167,139,250,0.3)'}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'}
+                        >
                             {item.cover_url
                                 ? <img src={item.cover_url} alt="" style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                                 : <div style={{ width: 52, height: 52, borderRadius: 10, background: 'rgba(167,139,250,0.2)', display: 'grid', placeItems: 'center', fontSize: 24, flexShrink: 0 }}>🎵</div>
@@ -104,7 +134,7 @@ export default function AdminPendingPage() {
                             {/* Actions */}
                             {statusTab === 'pending' && (
                                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                                    <button onClick={() => handleApprove(item.id)}
+                                    <button onClick={() => handleApprove(item.id, item.title)}
                                         style={{ padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(16,185,129,0.2)', color: '#10b981', fontWeight: 700, fontSize: 13 }}>
                                         ✅ Duyệt
                                     </button>
@@ -114,7 +144,7 @@ export default function AdminPendingPage() {
                                     </button>
                                 </div>
                             )}
-                            <button onClick={() => handleDelete(item.id)}
+                            <button onClick={() => handleDelete(item.id, item.title)}
                                 style={{ padding: '7px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(100,116,139,0.15)', color: '#94a3b8', fontSize: 13 }}>
                                 🗑️
                             </button>
@@ -140,6 +170,8 @@ export default function AdminPendingPage() {
                     </div>
                 </div>
             )}
+
+            <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:none } }`}</style>
         </div>
     );
 }

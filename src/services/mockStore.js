@@ -339,9 +339,18 @@ export const pendingStore = {
   remove: async (id) => { await delay(); pending = pending.filter(p => p.id !== id); return { success: true }; },
   submit: async (data) => {
     await delay();
-    const item = { id: nextId('pending'), ...data, status: 'pending', submitted_by_name: 'Người dùng', admin_note: '', created_at: new Date().toISOString() };
+    const item = { id: nextId('pending'), ...data, status: 'pending', submitted_by_name: data.submitted_by_name || 'Người dùng', admin_note: '', created_at: new Date().toISOString() };
     pending = [item, ...pending];
     return item;
+  },
+  getByUser: async (userName) => {
+    await delay();
+    return pending.filter(p => p.submitted_by_name === userName);
+  },
+  edit: async (id, data) => {
+    await delay();
+    pending = pending.map(p => p.id === id ? { ...p, ...data, status: 'pending', admin_note: '' } : p);
+    return pending.find(p => p.id === id);
   },
 };
 

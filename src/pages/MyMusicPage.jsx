@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMusic } from '../contexts/MusicContext';
-import { trackStore } from '../services/mockStore';
+import { trackStore, pendingStore } from '../services/mockStore';
 
 export default function MyMusicPage() {
   const { user } = useAuth();
@@ -11,6 +11,9 @@ export default function MyMusicPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState(null);
+  const [editingIsPending, setEditingIsPending] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deletingIsPending, setDeletingIsPending] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -23,8 +26,13 @@ export default function MyMusicPage() {
   const loadTracks = async () => {
     setIsLoading(true);
     try {
-      const userTracks = await trackStore.getByUser(user?.name || user?.username);
-      setTracks(userTracks || []);
+      const userName = user?.name || user?.username;
+      // Get approved/active tracks
+      const activeTracks = await trackStore.getByUser(userName);
+      // Get pending and rejected tracks
+      const pendingRes = await pendingStore.getByUser(userName);
+      
+      setTracks([...(activeTracks || []), ...(pendingRes || [])]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -38,9 +46,10 @@ export default function MyMusicPage() {
     }
   }, [user]);
 
-  const handleOpenModal = (track = null) => {
+  const handleOpenModal = (track = null, isPending = false) => {
     if (track) {
       setEditingTrack(track);
+      setEditingIsPending(isPending);
       setFormData({
         title: track.title,
         artist: track.artist,
@@ -76,14 +85,16 @@ export default function MyMusicPage() {
     
     try {
       if (editingTrack) {
-        await trackStore.edit(editingTrack.id, formData);
+        if (editingIsPending) {
+          await pendingStore.edit(editingTrack.id, formData);
+        } else {
+          await trackStore.edit(editingTrack.id, formData);
+        }
       } else {
-        await trackStore.add({
+        await pendingStore.submit({
           ...formData,
-          duration: 180, // Default duration fake
-          status: 'active',
-          submitted_by_name: user?.name || user?.username,
-          deezer_id: `user_${Date.now()}`
+          duration: 180, // Fake duration
+          submitted_by_name: user?.name || user?.username
         });
       }
       handleCloseModal();
@@ -93,14 +104,18 @@ export default function MyMusicPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài hát này? Hành động này sẽ xóa ngay lập tức.')) {
-      try {
-        await trackStore.remove(id);
-        loadTracks();
-      } catch (error) {
-        console.error(error);
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      if (deletingIsPending) {
+        await pendingStore.remove(deletingId);
+      } else {
+        await trackStore.remove(deletingId);
       }
+      setDeletingId(null);
+      loadTracks();
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -162,25 +177,37 @@ export default function MyMusicPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white truncate text-lg group-hover:text-fuchsia-neon transition-colors">{track.title}</h3>
-                  <p className="text-sm text-gray-400 truncate">{track.artist}</p>
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-white truncate text-lg group-hover:text-fuchsia-neon transition-colors">{track.title}</h3>
+                    {track.status === 'pending' && <span className="px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-500 text-[10px] font-bold uppercase tracking-widest border border-yellow-500/30">Chờ duyệt</span>}
+                    {track.status === 'rejected' && <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/30">Từ chối</span>}
+                  </div>
+                  <p className="text-sm text-gray-400 truncate mt-0.5">{track.artist}</p>
+                  {track.status === 'rejected' && track.admin_note && (
+                    <p className="text-xs text-red-400 mt-1 italic truncate max-w-sm">Lý do: {track.admin_note}</p>
+                  )}
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
-                    onClick={() => handleOpenModal(track)}
+                    onClick={() => handleOpenModal(track, track.status === 'pending' || track.status === 'rejected')}
                     className="w-10 h-10 rounded-full bg-white/10 hover:bg-teal-neon hover:text-synth-deep flex items-center justify-center transition-all text-white/70"
                     title="Chỉnh sửa"
                   >
                     <span className="material-symbols-outlined text-[20px]">edit</span>
                   </button>
                   <button 
-                    onClick={() => handleDelete(track.id)}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setDeletingId(track.id); 
+                      setDeletingIsPending(track.status === 'pending' || track.status === 'rejected'); 
+                    }}
                     className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all text-white/70"
                     title="Xóa nhạc"
+                    type="button"
                   >
-                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                    <span className="material-symbols-outlined text-[20px] pointer-events-none">delete</span>
                   </button>
                 </div>
 
@@ -263,6 +290,32 @@ export default function MyMusicPage() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setDeletingId(null)}></div>
+          <div className="relative bg-synth-base border border-red-500/50 w-full max-w-sm rounded-3xl p-8 shadow-[0_0_50px_rgba(255,0,0,0.1)] text-center">
+             <span className="material-symbols-outlined text-red-500 text-6xl mb-4">warning</span>
+             <h2 className="text-xl font-bold text-white mb-2">Xác nhận xóa</h2>
+             <p className="text-white/60 mb-8 text-sm">Hành động này sẽ xóa bài hát ngay lập tức và không thể khôi phục.</p>
+             <div className="flex gap-4">
+               <button 
+                 onClick={() => setDeletingId(null)}
+                 className="flex-1 py-3 px-4 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-colors uppercase text-xs tracking-widest"
+               >
+                 Hủy
+               </button>
+               <button 
+                 onClick={confirmDelete}
+                 className="flex-1 py-3 px-4 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 hover:scale-[1.02] transition-all shadow-[0_0_15px_rgba(255,0,0,0.4)] uppercase text-xs tracking-widest"
+               >
+                 Xóa
+               </button>
+             </div>
           </div>
         </div>
       )}

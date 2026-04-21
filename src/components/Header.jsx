@@ -130,7 +130,7 @@ export default function Header() {
   };
 
   const handleProfile = () => {
-    console.log('TODO: Navigate to profile page');
+    navigate('/profile');
     setDropdownOpen(false);
   };
 

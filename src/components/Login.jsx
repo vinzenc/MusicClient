@@ -91,7 +91,7 @@ const Login = () => {
             {/* Header */}
             <header className="flex justify-between items-center py-6 px-8 md:px-16 relative z-10 w-full">
                 <div className="text-3xl font-black italic tracking-tighter cursor-pointer" onClick={() => navigate('/')}>
-                    <span className="text-cyan-400">NOCTURN</span><span className="text-purple-400">Z</span>
+                    <span className="text-cyan-400">NOCTURN</span><span className="text-purple-400">E</span>
                 </div>
                 <nav className="hidden md:flex space-x-10 text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">
                     <a href="#" className="hover:text-cyan-400 transition-colors">Khám phá</a>
@@ -159,9 +159,9 @@ const Login = () => {
 
                                     {/* Link Quên mật khẩu */}
                                     <div className="flex justify-end mt-2">
-                                        <a href="#" className="text-[10px] text-cyan-400 hover:text-white transition-colors font-bold uppercase tracking-widest">
+                                        <span onClick={() => navigate('/forgot-password')} className="text-[10px] text-cyan-400 hover:text-white transition-colors font-bold uppercase tracking-widest cursor-pointer">
                                             Quên mật khẩu?
-                                        </a>
+                                        </span>
                                     </div>
                                 </div>
 

@@ -100,7 +100,7 @@ const Register = () => {
             {/* Header */}
             <header className="flex justify-between items-center py-6 px-8 md:px-16 relative z-10 w-full">
                 <div className="text-3xl font-black italic tracking-tighter">
-                    <span className="text-cyan-400">NOCTURN</span><span className="text-purple-400">Z</span>
+                    <span className="text-cyan-400">NOCTURN</span><span className="text-purple-400">E</span>
                 </div>
                 <nav className="hidden md:flex space-x-10 text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">
                     <a href="#" className="hover:text-cyan-400 transition-colors">Khám phá</a>
@@ -212,7 +212,7 @@ const Register = () => {
 
             {/* Footer */}
             <footer className="py-6 text-center text-[10px] font-bold text-gray-600 tracking-[0.4em] relative z-10 uppercase">
-                &copy; 2026 NOCTURNZ MUSIC SERVICE. FULLSCREEN EDITION.
+                &copy; 2026 NOCTURNE MUSIC SERVICE.BY THANH THUẬN
             </footer>
         </div>
     );

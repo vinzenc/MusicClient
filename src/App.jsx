@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { MusicProvider } from './contexts/MusicContext';
 import Register from './components/Register';
 import Login from './components/Login';
+import ForgotPassword from './components/ForgotPassword';
 
 // ── Layout & components ─────────────────────────────────────────
 import AppLayout from './components/AppLayout';
@@ -13,6 +14,7 @@ import DiscoverPage from './pages/DiscoverPage';
 import LibraryPage from './pages/LibraryPage';
 import PlaylistPage from './pages/PlaylistPage';
 import MyMusicPage from './pages/MyMusicPage';
+import ProfilePage from './pages/ProfilePage';
 
 // ── Admin Pages ─────────────────────────────────────────────────
 import AdminLayout from './pages/admin/AdminLayout';
@@ -34,11 +36,13 @@ function App() {
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/playlist/:id" element={<PlaylistPage />} />
             <Route path="/my-music" element={<MyMusicPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           {/* ── Auth ── */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* ── Admin Panel ── */}
           <Route path="/admin" element={<AdminLayout />}>

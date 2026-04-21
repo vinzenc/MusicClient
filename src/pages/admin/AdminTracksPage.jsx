@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { trackStore } from '../../services/mockStore';
+import { songAPI } from '../../services/api';
 import TrackFormModal from '../../components/admin/TrackFormModal';
 
 function formatDur(sec) {
@@ -38,7 +38,10 @@ export default function AdminTracksPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await trackStore.getAll({ search, status: statusFilter, page, limit: LIMIT });
+            // status: '' = tất cả, 'active' = approved, 'inactive' = rejected
+            const apiStatus = statusFilter === 'active' ? 'approved'
+                            : statusFilter === 'inactive' ? 'rejected' : '';
+            const res = await songAPI.getAll({ search, status: apiStatus, page, limit: LIMIT });
             setTracks(res.data || []);
             setTotal(res.total || 0);
         } finally { setLoading(false); }
@@ -48,21 +51,25 @@ export default function AdminTracksPage() {
 
     const handleDelete = async (id, title) => {
         if (!confirm(`Xóa track "${title}"?`)) return;
-        await trackStore.remove(id);
+        await songAPI.remove(id);
         notify(`Đã xóa "${title}"`);
         load();
     };
 
     const handleSave = async (data) => {
-        if (modal.track) {
-            await trackStore.edit(modal.track.id, data);
-            notify('Đã cập nhật track!');
-        } else {
-            await trackStore.add(data);
-            notify('Đã thêm track mới!');
+        try {
+            if (modal.track) {
+                await songAPI.update(modal.track.id, data);
+                notify('Đã cập nhật track!');
+            } else {
+                await songAPI.create(data);
+                notify('Đã thêm track mới!');
+            }
+            setModal({ open: false, track: null });
+            load();
+        } catch (e) {
+            notify(e.message || 'Lỗi khi lưu track', 'err');
         }
-        setModal({ open: false, track: null });
-        load();
     };
 
     const totalPages = Math.ceil(total / LIMIT);

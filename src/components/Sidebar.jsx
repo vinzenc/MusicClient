@@ -7,6 +7,7 @@ const NAV = [
   { to: '/discover', icon: 'explore', label: 'Khám phá' },
   { to: '/library', icon: 'library_music', label: 'Playlist' },
   { to: '/favorites', icon: 'favorite', label: 'Bài nhạc yêu thích' },
+  { to: '/history', icon: 'history', label: 'Lịch sử nghe nhạc' },
   { to: '/my-music', icon: 'queue_music', label: 'Nhạc của tôi' },
 ];
 
@@ -77,8 +78,8 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
-        {/* Admin Panel shortcut */}
-        {isAdmin && (
+        {/* Admin/Collaborator Panel shortcut */}
+        {(user?.role === 'admin' || user?.role === 'collaborator') && (
           <NavLink
             to="/admin"
             className={({ isActive }) =>
@@ -89,10 +90,29 @@ export default function Sidebar() {
             }
           >
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              admin_panel_settings
+              {user.role === 'admin' ? 'admin_panel_settings' : 'dashboard'}
             </span>
-            <span className="text-sm font-bold">Admin Panel</span>
+            <span className="text-sm font-bold">{user.role === 'admin' ? 'Admin Panel' : 'CTV Dashboard'}</span>
             <span className="ml-auto w-2 h-2 rounded-full bg-fuchsia-neon animate-pulse shadow-[0_0_6px_rgba(255,0,255,0.8)]" />
+          </NavLink>
+        )}
+
+        {/* Collaborator Dashboard shortcut */}
+        {isCollaborator && (
+          <NavLink
+            to="/collaborator"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border ${
+                isActive
+                  ? 'bg-teal-neon/20 border-teal-neon/40 text-teal-neon font-bold'
+                  : 'border-transparent bg-teal-neon/10 text-teal-neon hover:bg-teal-neon/20 hover:border-teal-neon/30'
+              }`
+            }
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              dashboard
+            </span>
+            <span className="text-sm font-bold">CTV Dashboard</span>
           </NavLink>
         )}
 

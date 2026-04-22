@@ -54,11 +54,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  // Helper — kiểm tra admin nhanh
+  // Helper — kiểm tra role nhanh
   const isAdmin = user?.role === 'admin';
+  const isCollaborator = user?.role === 'collaborator' || user?.role === 'ctv';
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin, isCollaborator }}>
       {!loading && children}
     </AuthContext.Provider>
   );

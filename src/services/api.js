@@ -2,7 +2,7 @@
 //  API CLIENT — kết nối thật với MusicAPI backend
 // ════════════════════════════════════════════════════════════════
 
-const BASE = 'https://musicapi-376j.onrender.com';
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Lấy token từ localStorage
 const getToken = () => localStorage.getItem('token');
@@ -118,6 +118,13 @@ export const songAPI = {
     return result;
   },
 
+  // Lấy nhạc của chính CTV đang đăng nhập
+  getMyUploads: async ({ page = 1, limit = 10 } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    const res = await get(`/music/my-uploads?${params}`);
+    return normalizeList(res);
+  },
+
   getById: async (id) => {
     const res = await get(`/music/songs/${id}`);
     return normalizeSong(res);
@@ -212,6 +219,21 @@ export const favoriteAPI = {
     const rows = res.data || res || [];
     return rows.map(normalizeSong);
   },
+};
+
+// ════════════════════════════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════════════════════════════
+export const historyAPI = {
+  // Lấy lịch sử nghe nhạc của user
+  getAll: async () => {
+    const res = await get('/history/');
+    const rows = res.data || res || [];
+    return rows.map(normalizeSong);
+  },
+  
+  // Ghi nhận bài hát vào lịch sử
+  add: (songId) => post('/history/', { songId }),
 };
 
 // ════════════════════════════════════════════════════════════════

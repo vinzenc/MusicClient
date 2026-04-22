@@ -67,8 +67,8 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
-        {/* Admin Panel shortcut */}
-        {isAdmin && (
+        {/* Admin/Collaborator Panel shortcut */}
+        {(user?.role === 'admin' || user?.role === 'collaborator') && (
           <NavLink
             to="/admin"
             className={({ isActive }) =>
@@ -80,9 +80,9 @@ export default function Sidebar() {
             }
           >
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              admin_panel_settings
+              {user.role === 'admin' ? 'admin_panel_settings' : 'dashboard'}
             </span>
-            <span className="text-sm font-bold">Admin Panel</span>
+            <span className="text-sm font-bold">{user.role === 'admin' ? 'Admin Panel' : 'CTV Dashboard'}</span>
             <span className="ml-auto w-2 h-2 rounded-full bg-fuchsia-neon animate-pulse shadow-[0_0_6px_rgba(255,0,255,0.8)]" />
           </NavLink>
         )}

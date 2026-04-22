@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMusic } from '../contexts/MusicContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { notificationStore, deezerAPI } from '../services/mockStore';
+import { deezerAPI } from '../services/mockStore';
 import { songAPI } from '../services/api';
 
 // custom debounce hook
@@ -19,8 +19,6 @@ export default function Header() {
   const { user, logout, isAdmin, loading } = useAuth();
   const { play } = useMusic();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +28,6 @@ export default function Header() {
   const debouncedQuery = useDebounce(searchQuery, 500);
 
   const dropdownRef = useRef(null);
-  const notifRef = useRef(null);
   const searchRef = useRef(null);
 
   const navigate = useNavigate();
@@ -41,9 +38,6 @@ export default function Header() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setNotifOpen(false);
-      }
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setSearchOpen(false);
       }
@@ -52,21 +46,6 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Fetch notifications
-  const loadNotifs = async () => {
-    if (user) {
-      const n = await notificationStore.getByUser(user.name || user.username);
-      setNotifications(n || []);
-    }
-  };
-
-  useEffect(() => {
-    loadNotifs();
-    // Poll every 5s for demo
-    const intv = setInterval(loadNotifs, 5000);
-    return () => clearInterval(intv);
-  }, [user, loadNotifs]);
 
   // Handle Search (tìm kiếm từ backend trước, fallback sang Deezer nếu cần)
   useEffect(() => {
@@ -115,18 +94,6 @@ export default function Header() {
     };
     play(standardTrack, searchResults.map(t => ({...t, id: `dz_${t.id}`, cover_url: t.cover, preview_url: t.preview})));
     setSearchOpen(false);
-  };
-
-  const handleMarkAsRead = async (id) => {
-    await notificationStore.markAsRead(id);
-    loadNotifs();
-  };
-
-  const handleMarkAllRead = async () => {
-    if (user) {
-      await notificationStore.markAllAsRead(user.name || user.username);
-      loadNotifs();
-    }
   };
 
   const handleLogout = async () => {
@@ -209,70 +176,6 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-6 ml-8">
-        {/* Notifications */}
-        <div className="relative" ref={notifRef}>
-          <button 
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="text-white/60 hover:text-fuchsia-neon transition-colors relative mt-1"
-          >
-            <span className="material-symbols-outlined text-[24px]">notifications</span>
-            {notifications.some(n => !n.isRead) && (
-              <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-yellow-400 rounded-full border border-[#0B0F19] shadow-[0_0_10px_rgba(250,204,21,0.8)]"></span>
-            )}
-          </button>
-          
-          {notifOpen && (
-            <div className="absolute right-0 top-12 w-80 bg-[#181d36] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl overflow-hidden py-2 z-50">
-              <div className="px-4 py-3 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-white font-bold">Thông báo</h3>
-                {notifications.some(n => !n.isRead) && (
-                  <button onClick={handleMarkAllRead} className="text-xs text-fuchsia-neon hover:text-white transition-colors">Đánh dấu đã đọc</button>
-                )}
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-white/40 text-sm">Chưa có thông báo nào.</div>
-                ) : (
-                  notifications.map(n => (
-                    <div 
-                      key={n.id} 
-                      onClick={() => handleMarkAsRead(n.id)}
-                      className={`p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors ${!n.isRead ? 'bg-fuchsia-neon/5' : ''}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5" style={{ color: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#a78bfa' }}>
-                          {n.type === 'success' ? 'check_circle' : n.type === 'error' ? 'cancel' : 'info'}
-                        </span>
-                        <div>
-                          <p className={`text-sm ${!n.isRead ? 'text-white' : 'text-white/70'}`}>{n.message}</p>
-                          <span className="text-[10px] text-white/40 mt-1 block">{new Date(n.created_at).toLocaleTimeString('vi-VN')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Admin Panel Button — chỉ hiện với admin */}
-        {isAdmin && (
-          <button
-            onClick={() => navigate('/admin')}
-            title="Admin Panel"
-            className="relative flex items-center justify-center w-9 h-9 rounded-full border border-fuchsia-neon/30 bg-fuchsia-neon/10 hover:bg-fuchsia-neon/25 hover:border-fuchsia-neon/70 transition-all group shadow-[0_0_12px_rgba(255,0,255,0.15)] hover:shadow-[0_0_20px_rgba(255,0,255,0.4)]"
-          >
-            <span
-              className="material-symbols-outlined text-fuchsia-neon text-[18px] group-hover:scale-110 transition-transform"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              admin_panel_settings
-            </span>
-            {/* Pulse dot */}
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-fuchsia-neon rounded-full border-2 border-synth-deep animate-pulse shadow-[0_0_6px_rgba(255,0,255,0.8)]" />
-          </button>
-        )}
 
         {/* KHU VỰC AVATAR & TÊN NGƯỜI DÙNG */}
         <div className="relative" ref={dropdownRef}>
@@ -326,15 +229,19 @@ export default function Header() {
                       )}
                     </div>
                   </div>
-                  {/* Admin Panel — only for admin */}
-                  {isAdmin && (
+                  {/* Admin/Collaborator Dashboard */}
+                  {(user.role === 'admin' || user.role === 'collaborator') && (
                     <button
                       onClick={() => { navigate('/admin'); setDropdownOpen(false); }}
                       className="w-full text-left px-4 py-2 text-fuchsia-neon hover:text-white hover:bg-fuchsia-neon/15 transition-all flex items-center gap-3 font-semibold border-b border-fuchsia-neon/10"
                     >
-                      <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-                      <span>Admin Panel</span>
-                      <span className="ml-auto text-[10px] bg-fuchsia-neon/20 text-fuchsia-neon px-1.5 py-0.5 rounded">ADMIN</span>
+                      <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {user.role === 'admin' ? 'admin_panel_settings' : 'dashboard'}
+                      </span>
+                      <span>{user.role === 'admin' ? 'Admin Panel' : 'Cộng tác viên'}</span>
+                      <span className="ml-auto text-[10px] bg-fuchsia-neon/20 text-fuchsia-neon px-1.5 py-0.5 rounded">
+                        {user.role === 'admin' ? 'ADMIN' : 'CTV'}
+                      </span>
                     </button>
                   )}
 

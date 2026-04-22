@@ -133,7 +133,7 @@ export default function AdminPendingPage() {
                                 <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                                     {item.album && <span>{item.album} · </span>}
                                     {formatDur(item.duration)}
-                                    {item.submitted_by_name && <span> · 👤 {item.submitted_by_name}</span>}
+                                    {item.uploaderName && <span> · 👤 {item.uploaderName}</span>}
                                 </div>
                                 {item.admin_note && (
                                     <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>Ghi chú: {item.admin_note}</div>

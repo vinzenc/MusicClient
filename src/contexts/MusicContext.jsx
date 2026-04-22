@@ -134,11 +134,17 @@ export function MusicProvider({ children }) {
       setQueueIndex(idx >= 0 ? idx : 0);
     }
 
-    // Thêm vào recentlyPlayed
+    // Cập nhật giao diện mượt mà trước
     setRecentlyPlayed(prev => {
       const filtered = prev.filter(t => t.id !== track.id);
-      return [track, ...filtered].slice(0, 12);
+      return [track, ...filtered].slice(0, 50);
     });
+
+    // Gọi API để lưu lên server (không cần await để tránh block)
+    const token = localStorage.getItem('token');
+    if (token) {
+      historyAPI.add(track.id).catch(e => console.error('historyAPI error', e));
+    }
 
     if (track.preview_url) {
       audio.src = track.preview_url;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { userStore } from '../../services/mockStore';
+import { userAPI } from '../../services/api';
 import UserFormModal from '../../components/admin/UserFormModal';
 import ChangePasswordModal from '../../components/admin/ChangePasswordModal';
 
@@ -37,9 +37,14 @@ export default function AdminUsersPage() {
 
     const load = async (role = roleFilter) => {
         setLoading(true);
-        const res = await userStore.getAll(role);
-        setUsers(res.data || []);
-        setLoading(false);
+        try {
+            const res = await userAPI.getAll(role);
+            setUsers(res.data || []);
+        } catch (e) {
+            notify(e.message || 'Lỗi tải user', 'err');
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { load(roleFilter); }, [roleFilter]);
@@ -47,35 +52,51 @@ export default function AdminUsersPage() {
     const handleDelete = async (id, name) => {
         if (id === me.id) return notify('Không thể xóa chính mình!', 'err');
         if (!confirm(`Xóa user "${name}"?`)) return;
-        await userStore.remove(id);
-        notify(`Đã xóa user "${name}"`);
-        load();
+        try {
+            await userAPI.remove(id);
+            notify(`Đã xóa user "${name}"`);
+            load();
+        } catch (e) {
+            notify(e.message || 'Lỗi xóa user', 'err');
+        }
     };
 
     const handleRoleChange = async (id, currentRole, name) => {
         const newRole = currentRole === 'user' ? 'collaborator' : 'user';
         if (!confirm(`Đổi role của "${name}" thành "${newRole}"?`)) return;
-        await userStore.changeRole(id, newRole);
-        notify(`Đã đổi role: ${name} → ${newRole}`);
-        load();
+        try {
+            await userAPI.changeRole(id, newRole);
+            notify(`Đã đổi role: ${name} → ${newRole}`);
+            load();
+        } catch (e) {
+            notify(e.message || 'Lỗi đổi role', 'err');
+        }
     };
 
     const handleSave = async (data) => {
-        if (modal.user) {
-            await userStore.edit(modal.user.id, data);
-            notify('Đã cập nhật thông tin!');
-        } else {
-            await userStore.add(data);
-            notify('Đã tạo user mới!');
+        try {
+            if (modal.user) {
+                await userAPI.update(modal.user.id, data);
+                notify('Đã cập nhật thông tin!');
+            } else {
+                await userAPI.create(data);
+                notify('Đã tạo user mới!');
+            }
+            setModal({ open: false, user: null });
+            load();
+        } catch (e) {
+            notify(e.message || 'Lỗi lưu user', 'err');
         }
-        setModal({ open: false, user: null });
-        load();
     };
 
     const handleChangePassword = async (pw) => {
-        await userStore.changePassword(pwModal.user.id, pw);
-        notify('Đã đổi mật khẩu thành công!');
-        setPwModal({ open: false, user: null });
+        try {
+            await userAPI.forceResetPassword(pwModal.user.id);
+            notify('Đã reset mật khẩu thành công!');
+            setPwModal({ open: false, user: null });
+        } catch (e) {
+            notify(e.message || 'Lỗi reset mật khẩu', 'err');
+        }
     };
 
     return (

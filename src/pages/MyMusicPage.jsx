@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMusic } from '../contexts/MusicContext';
-import { trackStore, pendingStore } from '../services/mockStore';
+import { songAPI } from '../services/api';
 
 export default function MyMusicPage() {
   const { user } = useAuth();
@@ -26,13 +26,18 @@ export default function MyMusicPage() {
   const loadTracks = async () => {
     setIsLoading(true);
     try {
-      const userName = user?.name || user?.username;
-      // Get approved/active tracks
-      const activeTracks = await trackStore.getByUser(userName);
-      // Get pending and rejected tracks
-      const pendingRes = await pendingStore.getByUser(userName);
-      
-      setTracks([...(activeTracks || []), ...(pendingRes || [])]);
+      // Lấy tất cả bài hát (admin thì được thấy hết, user thường thì thấy nhạc approved)
+      const [approved, pending, rejected] = await Promise.all([
+        songAPI.getAll({ status: 'approved', limit: 100 }),
+        songAPI.getAll({ status: 'pending',  limit: 100 }),
+        songAPI.getAll({ status: 'rejected', limit: 100 }),
+      ]);
+      const all = [
+        ...(approved.data || []),
+        ...(pending.data  || []),
+        ...(rejected.data || []),
+      ];
+      setTracks(all);
     } catch (error) {
       console.error(error);
     } finally {
@@ -85,16 +90,21 @@ export default function MyMusicPage() {
     
     try {
       if (editingTrack) {
-        if (editingIsPending) {
-          await pendingStore.edit(editingTrack.id, formData);
-        } else {
-          await trackStore.edit(editingTrack.id, formData);
-        }
+        await songAPI.update(editingTrack.id, {
+          title:      formData.title,
+          artist:     formData.artist,
+          genre:      formData.genre,
+          coverUrl:   formData.cover_url,
+          audioUrl:   formData.preview_url,
+        });
       } else {
-        await pendingStore.submit({
-          ...formData,
-          duration: 180, // Fake duration
-          submitted_by_name: user?.name || user?.username
+        await songAPI.create({
+          title:      formData.title,
+          artist:     formData.artist,
+          genre:      formData.genre,
+          coverUrl:   formData.cover_url,
+          audioUrl:   formData.preview_url,
+          duration:   0,
         });
       }
       handleCloseModal();
@@ -107,11 +117,7 @@ export default function MyMusicPage() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      if (deletingIsPending) {
-        await pendingStore.remove(deletingId);
-      } else {
-        await trackStore.remove(deletingId);
-      }
+      await songAPI.remove(deletingId);
       setDeletingId(null);
       loadTracks();
     } catch (error) {

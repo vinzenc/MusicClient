@@ -1,93 +1,256 @@
-// API configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// ════════════════════════════════════════════════════════════════
+//  API CLIENT — kết nối thật với MusicAPI backend
+// ════════════════════════════════════════════════════════════════
 
-// Fetch wrapper
-const fetchAPI = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
-    }
+// Lấy token từ localStorage
+const getToken = () => localStorage.getItem('token');
 
-    return await response.json();
-  } catch (error) {
-    console.error(`API call failed for ${endpoint}:`, error);
-    throw error;
+// Fetch wrapper chuẩn hoá header + token + error handling
+async function request(path, options = {}) {
+  const token = getToken();
+  const headers = { ...options.headers };
+
+  // Không tự set Content-Type nếu body là FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
   }
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+
+  // Với 204 No Content không có body
+  if (res.status === 204) return { success: true };
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const err = new Error(data.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+// ── Helper shorthand ─────────────────────────────────────────────
+const get  = (path, opts)  => request(path, { method: 'GET',    ...opts });
+const post = (path, body)  => request(path, { method: 'POST',   body: body instanceof FormData ? body : JSON.stringify(body) });
+const put  = (path, body)  => request(path, { method: 'PUT',    body: body instanceof FormData ? body : JSON.stringify(body) });
+const patch = (path, body) => request(path, { method: 'PATCH',  body: JSON.stringify(body) });
+const del  = (path)        => request(path, { method: 'DELETE' });
+
+// ════════════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════════════
+export const authAPI = {
+  login:          (email, password)          => post('/auth/login',           { email, password }),
+  register:       (name, email, password)    => post('/auth/register',        { name, email, password }),
+  forgotPassword: (email)                    => post('/auth/forgot-password', { email }),
+  resetPassword:  (email, otp, newPassword)  => post('/auth/reset-password',  { email, otp, newPassword }),
 };
 
-// Music API endpoints
-export const musicAPI = {
-  // Auth
-  login: (email, password) => fetchAPI('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  }),
-  
-  register: (email, password, name) => fetchAPI('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, name }),
-  }),
-  
-  logout: () => fetchAPI('/auth/logout', {
-    method: 'POST',
-  }),
-  
-  getCurrentUser: () => fetchAPI('/auth/me'),
-  
-  // Tracks
-  getTrendingTracks: () => fetchAPI('/tracks/trending'),
-  getTrackById: (id) => fetchAPI(`/tracks/${id}`),
-  searchTracks: (query) => fetchAPI(`/tracks/search?q=${query}`),
-  
-  // Albums
-  getFeaturedAlbums: () => fetchAPI('/albums/featured'),
-  getAlbumById: (id) => fetchAPI(`/albums/${id}`),
-  
-  // Artists
-  getArtistById: (id) => fetchAPI(`/artists/${id}`),
-  searchArtists: (query) => fetchAPI(`/artists/search?q=${query}`),
-  
-  // Playlists
-  getUserPlaylists: (userId) => fetchAPI(`/users/${userId}/playlists`),
-  getPlaylistById: (id) => fetchAPI(`/playlists/${id}`),
-  
-  // User interactions
-  addToLibrary: (trackId) => fetchAPI(`/library/add`, {
-    method: 'POST',
-    body: JSON.stringify({ trackId }),
-  }),
-  
-  removeFromLibrary: (trackId) => fetchAPI(`/library/remove`, {
-    method: 'POST',
-    body: JSON.stringify({ trackId }),
-  }),
-  
-  getRecentlyPlayed: (userId) => fetchAPI(`/users/${userId}/recently-played`),
-  
-  // Player
-  playTrack: (trackId) => fetchAPI(`/player/play`, {
-    method: 'POST',
-    body: JSON.stringify({ trackId }),
-  }),
-  
-  pauseTrack: () => fetchAPI(`/player/pause`, {
-    method: 'POST',
-  }),
-  
-  skipTrack: (direction) => fetchAPI(`/player/skip`, {
-    method: 'POST',
-    body: JSON.stringify({ direction }),
-  }),
+// ════════════════════════════════════════════════════════════════
+//  SONGS / TRACKS  — normalize field names để tương thích với UI
+// ════════════════════════════════════════════════════════════════
+
+// Backend trả audioUrl, coverUrl; UI dùng preview_url, cover_url → normalize
+function normalizeSong(s) {
+  if (!s) return null;
+  return {
+    ...s,
+    // UI fields
+    cover_url:   s.cover_url   || s.coverUrl   || '',
+    preview_url: s.preview_url || s.audioUrl   || '',
+    // Giữ lại backend fields để không mất thông tin
+    coverUrl:    s.coverUrl    || s.cover_url  || '',
+    audioUrl:    s.audioUrl    || s.preview_url || '',
+    // status theo dạng string đơn giản
+    status: s.approvalStatus === 'approved' ? 'active'
+          : s.approvalStatus === 'rejected' ? 'rejected'
+          : s.approvalStatus || s.status || 'pending',
+    approvalStatus: s.approvalStatus || (s.status === 'active' ? 'approved' : s.status) || 'pending',
+  };
+}
+
+function normalizeList(res) {
+  // res có thể là array hoặc { data, total, rows, ... }
+  if (Array.isArray(res)) return { data: res.map(normalizeSong), total: res.length };
+  const rows = res.rows || res.data || [];
+  return {
+    data:  rows.map(normalizeSong),
+    total: res.total ?? rows.length,
+  };
+}
+
+export const songAPI = {
+  // Lấy danh sách nhạc approved (public)
+  getList: async ({ search = '', page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (search) params.set('q', search);
+    const path = search ? `/music/search?${params}` : `/music/list?${params}`;
+    const res = await get(path);
+    return normalizeList(res);
+  },
+
+  // Lấy tất cả nhạc (admin, lọc theo approvalStatus)
+  getAll: async ({ search = '', status = '', page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status === 'active' ? 'approved' : status);
+    const res = await get(`/music/songs?${params}`);
+    let result = normalizeList(res);
+    // Filter phía client nếu cần search (endpoint /songs không có ?q)
+    if (search) {
+      const q = search.toLowerCase();
+      result.data = result.data.filter(t =>
+        t.title?.toLowerCase().includes(q) ||
+        t.artist?.toLowerCase().includes(q) ||
+        (t.album || '').toLowerCase().includes(q)
+      );
+      result.total = result.data.length;
+    }
+    return result;
+  },
+
+  getById: async (id) => {
+    const res = await get(`/music/songs/${id}`);
+    return normalizeSong(res);
+  },
+
+  // Tạo bài hát bằng JSON (URL đã có sẵn)
+  create: async (payload) => {
+    const res = await post('/music/songs', {
+      title:       payload.title,
+      artist:      payload.artist,
+      album:       payload.album       || '',
+      genre:       payload.genre       || '',
+      duration:    payload.duration    || 0,
+      releaseYear: payload.releaseYear || null,
+      audioUrl:    payload.audioUrl    || payload.preview_url || null,
+      coverUrl:    payload.coverUrl    || payload.cover_url   || null,
+      cloudinaryId: payload.cloudinaryId || null,
+    });
+    return normalizeSong(res);
+  },
+
+  // Upload multipart (file nhạc + cover + metadata)
+  createMultipart: async (formData) => {
+    const res = await request('/music/songs/multipart', {
+      method: 'POST',
+      body: formData,
+    });
+    return normalizeSong(res);
+  },
+
+  // Cập nhật bài hát bằng JSON
+  update: async (id, payload) => {
+    const res = await put(`/music/songs/${id}`, {
+      title:       payload.title,
+      artist:      payload.artist,
+      album:       payload.album       || '',
+      genre:       payload.genre       || '',
+      duration:    payload.duration    || 0,
+      releaseYear: payload.releaseYear || null,
+      audioUrl:    payload.audioUrl    || payload.preview_url || undefined,
+      coverUrl:    payload.coverUrl    || payload.cover_url   || undefined,
+    });
+    return normalizeSong(res);
+  },
+
+  // Xóa bài hát
+  remove: async (id) => del(`/music/songs/${id}`),
+
+  // Upload chỉ audio, trả về { audioUrl, cloudinaryId, duration }
+  uploadAudio: async (file) => {
+    const fd = new FormData();
+    fd.append('audio', file);
+    return request('/music/songs/upload', { method: 'POST', body: fd });
+  },
+
+  // Upload chỉ cover, trả về { coverUrl, coverPublicId }
+  uploadCover: async (file) => {
+    const fd = new FormData();
+    fd.append('cover', file);
+    return request('/music/songs/upload-cover', { method: 'POST', body: fd });
+  },
+
+  // Admin/CTV duyệt nhạc: status = 'approved' | 'rejected'
+  review: async (id, status) => {
+    const res = await patch(`/music/songs/${id}/review`, { status });
+    return normalizeSong(res.data || res);
+  },
+
+  // Lấy lịch sử tìm kiếm
+  getSearchHistory: () => get('/music/history').then(r => r.data || []),
+
+  // Xóa toàn bộ lịch sử
+  clearSearchHistory: () => del('/music/history'),
+
+  // Xóa 1 từ khóa
+  deleteHistoryItem: (keyword) => del(`/music/history/${encodeURIComponent(keyword)}`),
+
+  // URL nghe nhạc (redirect Cloudinary)
+  getListenUrl: (id) => `${BASE}/music/songs/${id}/listen`,
 };
 
-export default musicAPI;
+// ════════════════════════════════════════════════════════════════
+//  FAVORITES (Library)
+// ════════════════════════════════════════════════════════════════
+export const favoriteAPI = {
+  // Toggle yêu thích — trả về { success, isLiked }
+  toggle: (songId) => post('/favorite/like', { songId }),
+
+  // Lấy danh sách bài hát yêu thích của user hiện tại
+  getAll: async () => {
+    const res = await get('/favorite');
+    const rows = res.data || res || [];
+    return rows.map(normalizeSong);
+  },
+};
+
+// ════════════════════════════════════════════════════════════════
+//  ADMIN — USERS
+// ════════════════════════════════════════════════════════════════
+export const userAPI = {
+  getAll: async (role = '') => {
+    const params = role ? `?role=${role}` : '';
+    const res = await get(`/users${params}`);
+    const data = Array.isArray(res) ? res : (res.data || res.users || []);
+    return { data };
+  },
+
+  getById: (id) => get(`/users/${id}`),
+
+  // Admin tạo user trực tiếp
+  create: (payload) => post('/users/add', payload),
+
+  // Chỉnh sửa user
+  update: (id, payload) => put(`/users/${id}`, payload),
+
+  // Xóa user
+  remove: (id) => del(`/users/${id}`),
+
+  // Nâng/hạ role (user ↔ collaborator)
+  changeRole: (id, role) => patch(`/users/${id}/role`, { role }),
+
+  // Admin reset mật khẩu
+  forceResetPassword: (id) => post(`/users/${id}/force-reset`),
+};
+
+// ════════════════════════════════════════════════════════════════
+//  PROFILE (user tự đổi)
+// ════════════════════════════════════════════════════════════════
+export const profileAPI = {
+  update:          (name, email)                  => put('/profile',          { name, email }),
+  changePassword:  (oldPassword, newPassword)     => put('/profile/password', { oldPassword, newPassword }),
+};
+
+// ════════════════════════════════════════════════════════════════
+//  HEALTH CHECK
+// ════════════════════════════════════════════════════════════════
+export const healthAPI = {
+  check: () => get('/health'),
+};
+
+export default { authAPI, songAPI, favoriteAPI, userAPI, profileAPI, healthAPI };

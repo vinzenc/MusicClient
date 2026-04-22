@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { trackStore, userStore } from '../../services/mockStore';
+import { songAPI, userAPI } from '../../services/api';
 
 const StatCard = ({ icon, label, value, color }) => (
     <div style={{
@@ -23,8 +23,22 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState([]);
 
     useEffect(() => {
-        trackStore.getStats().then(setStats);
-        userStore.getAll().then(r => setUsers(r.data || []));
+        // Lấy stats từ API thật
+        Promise.all([
+            songAPI.getAll({ status: 'approved', limit: 1 }),
+            songAPI.getAll({ status: 'pending',  limit: 1 }),
+            songAPI.getAll({ status: 'rejected', limit: 1 }),
+            songAPI.getAll({ limit: 1 }),
+        ]).then(([approved, pending, rejected, all]) => {
+            setStats({
+                total_tracks:   all.total     || 0,
+                active_tracks:  approved.total || 0,
+                pending_count:  pending.total  || 0,
+                inactive_tracks: rejected.total || 0,
+            });
+        }).catch(() => setStats(null));
+
+        userAPI.getAll().then(r => setUsers(r.data || [])).catch(() => {});
     }, []);
 
     const userCount = users.length;
@@ -33,7 +47,7 @@ export default function AdminDashboard() {
     return (
         <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6, color: '#e2e8f0' }}>📊 Tổng quan</h1>
-            <p style={{ color: '#64748b', marginBottom: 28, fontSize: 14 }}>Xin chào! Đây là bảng điều khiển quản trị — dữ liệu Mock.</p>
+            <p style={{ color: '#64748b', marginBottom: 28, fontSize: 14 }}>Xin chào! Đây là bảng điều khiển quản trị — dữ liệu từ API thật.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 36 }}>
                 <StatCard icon="🎵" label="Tổng bài nhạc" value={stats?.total_tracks} color="#a78bfa" />
@@ -48,13 +62,12 @@ export default function AdminDashboard() {
                 background: 'rgba(167,139,250,0.06)', borderRadius: 16,
                 border: '1px solid rgba(167,139,250,0.2)', padding: 24,
             }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#a78bfa' }}>
-                    💡 Chế độ Demo (Mock Data)
+                <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#10b981' }}>
+                    ✅ Đã kết nối API thật
                 </h2>
                 <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.7 }}>
-                    Toàn bộ dữ liệu được lưu trong bộ nhớ của trình duyệt. Mọi thay đổi (thêm, sửa, xóa)
-                    sẽ <strong style={{ color: '#e2e8f0' }}>hoạt động đầy đủ</strong> và phản ánh ngay lập tức,
-                    nhưng sẽ <strong style={{ color: '#f59e0b' }}>reset khi reload trang</strong>.
+                    Toàn bộ dữ liệu được lấy từ <strong style={{ color: '#e2e8f0' }}>MusicAPI backend</strong> và lưu trong TiDB.
+                    Mọi thay đổi sẽ <strong style={{ color: '#10b981' }}>được lưu vĩnh viễn</strong> vào database.
                 </p>
                 <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
                     {[

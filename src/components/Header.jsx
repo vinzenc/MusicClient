@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMusic } from '../contexts/MusicContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { notificationStore, deezerAPI } from '../services/mockStore';
+import { songAPI } from '../services/api';
 
 // custom debounce hook
 function useDebounce(value, delay) {
@@ -67,7 +68,7 @@ export default function Header() {
     return () => clearInterval(intv);
   }, [user, loadNotifs]);
 
-  // Handle Deezer Search
+  // Handle Search (tìm kiếm từ backend trước, fallback sang Deezer nếu cần)
   useEffect(() => {
     const doSearch = async () => {
       if (!debouncedQuery.trim()) {
@@ -77,11 +78,25 @@ export default function Header() {
       }
       setIsSearching(true);
       try {
-        const res = await deezerAPI.search(debouncedQuery);
-        setSearchResults(res.data || []);
+        // Ưu tiên tìm kiếm từ backend
+        const res = await songAPI.getList({ search: debouncedQuery, limit: 10 });
+        if (res.data && res.data.length > 0) {
+          // Normalize sang format đồng nhất với Deezer fields mà UI dùng
+          setSearchResults(res.data.map(t => ({
+            ...t,
+            cover: t.cover_url || t.coverUrl || '',
+            preview: t.preview_url || t.audioUrl || '',
+            isLocal: true,
+          })));
+        } else {
+          // Fallback: tìm từ Deezer nếu backend không có kết quả
+          const deezerRes = await deezerAPI.search(debouncedQuery);
+          setSearchResults(deezerRes.data || []);
+        }
         setSearchOpen(true);
       } catch (e) {
         console.error(e);
+        setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -146,7 +161,7 @@ export default function Header() {
             onChange={e => setSearchQuery(e.target.value)}
             onFocus={() => { if(searchResults.length > 0) setSearchOpen(true); }}
             className="w-full bg-synth-indigo/30 border border-fuchsia-neon/20 rounded-full py-2.5 pl-12 pr-10 text-sm focus:ring-1 focus:ring-teal-neon/50 focus:bg-synth-indigo/50 font-label placeholder:text-white/20 transition-all text-white outline-none"
-            placeholder="Tìm bài hát, ca sĩ trên Deezer..."
+            placeholder="Tìm bài hát, ca sĩ, album..."
             type="text"
           />
           {searchQuery && (
@@ -163,7 +178,7 @@ export default function Header() {
         {searchOpen && searchQuery && (
           <div className="absolute top-12 left-0 right-0 bg-[#181d36] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl overflow-hidden py-2 z-40 max-h-96 flex flex-col">
             <div className="px-4 py-2 border-b border-white/5 text-xs text-fuchsia-neon font-bold uppercase tracking-widest flex items-center justify-between">
-              <span>Đang tìm kiếm trên Deezer</span>
+              <span>Kết quả tìm kiếm</span>
               {isSearching && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
             </div>
             

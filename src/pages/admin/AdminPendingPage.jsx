@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { pendingStore } from '../../services/mockStore';
+import { songAPI } from '../../services/api';
 import { useMusic } from '../../contexts/MusicContext';
 
 function formatDur(sec) {
@@ -35,7 +35,9 @@ export default function AdminPendingPage() {
 
     const load = async (s = statusTab) => {
         setLoading(true);
-        const res = await pendingStore.getAll(s);
+        // Map tab value sang approvalStatus
+        const apiStatus = s === 'approved' ? 'approved' : s === 'rejected' ? 'rejected' : 'pending';
+        const res = await songAPI.getAll({ status: apiStatus, limit: 100 });
         setItems(res.data || []);
         setLoading(false);
     };
@@ -43,27 +45,39 @@ export default function AdminPendingPage() {
     useEffect(() => { load(statusTab); }, [statusTab]);
 
     const handleApprove = async (id, title) => {
-        await pendingStore.approve(id);
-        notify(`Đã duyệt "${title}" và thêm vào thư viện!`);
-        load();
-        loadHomeData(); // Update global context for home page
+        try {
+            await songAPI.review(id, 'approved');
+            notify(`Đã duyệt "${title}" và thêm vào thư viện!`);
+            load();
+            loadHomeData();
+        } catch (e) {
+            notify(e.message || 'Lỗi duyệt nhạc', 'err');
+        }
     };
 
     const handleReject = async () => {
         const item = items.find(i => i.id === rejectId);
-        await pendingStore.reject(rejectId, note);
-        notify(`Đã từ chối "${item?.title}"`);
-        setRejectId(null);
-        setNote('');
-        load();
-        loadHomeData();
+        try {
+            await songAPI.review(rejectId, 'rejected');
+            notify(`Đã từ chối "${item?.title}"`);
+            setRejectId(null);
+            setNote('');
+            load();
+            loadHomeData();
+        } catch (e) {
+            notify(e.message || 'Lỗi từ chối', 'err');
+        }
     };
 
     const handleDelete = async (id, title) => {
-        if (!confirm('Xóa bản đề xuất này?')) return;
-        await pendingStore.remove(id);
-        notify(`Đã xóa đề xuất "${title}"`);
-        load();
+        if (!confirm('Xóa bài hát này?')) return;
+        try {
+            await songAPI.remove(id);
+            notify(`Đã xóa "${title}"`);
+            load();
+        } catch (e) {
+            notify(e.message || 'Lỗi xóa', 'err');
+        }
     };
 
     const TABS = [

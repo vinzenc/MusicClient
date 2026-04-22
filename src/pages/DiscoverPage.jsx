@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { trackStore, GENRES } from '../services/mockStore';
+import { songAPI } from '../services/api';
 import { useMusic } from '../contexts/MusicContext';
+
+// Danh sách genre tĩnh (giữ nguyên để không phạm vỡ UI)
+const GENRES = ['Pop', 'Hip-hop', 'R&B', 'K-Pop', 'Synth-pop', 'Disco-pop', 'Afrobeats', 'Indie-pop', 'Dance-pop'];
 
 function fmtTime(sec) {
   if (!sec) return '—';
@@ -15,9 +18,14 @@ export default function DiscoverPage() {
   const [tab, setTab] = useState('Tất cả');
   const { currentTrack, isPlaying, play, addToLibrary, removeFromLibrary, isInLibrary, playlists, addToPlaylist } = useMusic();
   const [contextMenu, setContextMenu] = useState(null); // { track, x, y }
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    trackStore.getAll({ limit: 100 }).then(r => setAllTracks(r.data));
+    setIsLoading(true);
+    songAPI.getList({ limit: 100 })
+      .then(r => setAllTracks(r.data || []))
+      .catch(() => setAllTracks([]))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const displayed = useMemo(() => {
@@ -86,7 +94,12 @@ export default function DiscoverPage() {
       </div>
 
       {/* Grid */}
-      {displayed.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-20 text-white/30">
+          <span className="material-symbols-outlined text-4xl animate-spin text-fuchsia-neon">sync</span>
+          <p className="mt-4">Đang tải nhạc...</p>
+        </div>
+      ) : displayed.length === 0 ? (
         <div className="text-center py-20 text-white/30">
           <span className="material-symbols-outlined text-6xl">music_off</span>
           <p className="mt-4">Không tìm thấy kết quả nào</p>

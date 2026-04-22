@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { trackStore, libraryStore, playlistStore } from '../services/mockStore';
+import { songAPI, favoriteAPI } from '../services/api';
+// Playlist & UI-only data vẫn dùng mockStore (chưa có API backend)
+import { playlistStore } from '../services/mockStore';
 
 const MusicContext = createContext();
 
@@ -65,12 +67,29 @@ export function MusicProvider({ children }) {
     }
   }, [repeat, queueIndex, queue, shuffle]);
 
-  const loadHomeData = useCallback(() => {
-    trackStore.getTrending().then(setTrendingTracks);
-    trackStore.getFeatured().then(setFeaturedTracks);
-    libraryStore.getAll().then(setLibrary);
-    playlistStore.getAll().then(setPlaylists);
+  const loadLibrary = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) { setLibrary([]); return; }
+    try {
+      const songs = await favoriteAPI.getAll();
+      setLibrary(songs);
+    } catch { setLibrary([]); }
   }, []);
+
+  const loadHomeData = useCallback(async () => {
+    // Lấy nhạc approved từ backend (trending = 8 bài đầu, featured = 3 bài)
+    try {
+      const res = await songAPI.getList({ limit: 20 });
+      const songs = res.data || [];
+      setTrendingTracks(songs.slice(0, 8));
+      setFeaturedTracks(songs.slice(0, 3));
+    } catch {
+      setTrendingTracks([]);
+      setFeaturedTracks([]);
+    }
+    loadLibrary();
+    playlistStore.getAll().then(setPlaylists);
+  }, [loadLibrary]);
 
   // ── Load initial data ──────────────────────────────────────
   useEffect(() => {
@@ -194,16 +213,28 @@ export function MusicProvider({ children }) {
     play(tracks[0], tracks);
   }, [play]);
 
-  // ── Library Controls ───────────────────────────────────────
+  // ── Library Controls (dùng Favorites API) ─────────────────
   const addToLibrary = useCallback(async (track) => {
-    await libraryStore.add(track.id);
-    setLibrary(await libraryStore.getAll());
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) return; // phải login mới dùng được
+    try {
+      await favoriteAPI.toggle(track.id);
+      await loadLibrary();
+    } catch (e) {
+      console.error('addToLibrary error:', e);
+    }
+  }, [loadLibrary]);
 
   const removeFromLibrary = useCallback(async (trackId) => {
-    await libraryStore.remove(trackId);
-    setLibrary(await libraryStore.getAll());
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await favoriteAPI.toggle(trackId);
+      await loadLibrary();
+    } catch (e) {
+      console.error('removeFromLibrary error:', e);
+    }
+  }, [loadLibrary]);
 
   const isInLibrary = useCallback((trackId) => {
     return library.some(t => t.id === trackId);
@@ -252,7 +283,7 @@ export function MusicProvider({ children }) {
       addToLibrary, removeFromLibrary, isInLibrary,
       createPlaylist, addToPlaylist, removeFromPlaylist,
       // Refresh
-      refreshLibrary: () => libraryStore.getAll().then(setLibrary),
+      refreshLibrary: loadLibrary,
       refreshPlaylists: () => playlistStore.getAll().then(setPlaylists),
     }}>
       {children}

@@ -6,7 +6,6 @@ const NAV = [
     { to: '/admin/tracks', label: '🎵 Quản lý nhạc' },
     { to: '/admin/pending', label: '⏳ Chờ duyệt' },
     { to: '/admin/users', label: '👤 Quản lý user' },
-    { to: '/admin/deezer', label: '🔍 Tìm từ Deezer' },
 ];
 
 const linkStyle = (active) => ({

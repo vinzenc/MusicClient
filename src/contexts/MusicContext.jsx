@@ -216,7 +216,10 @@ export function MusicProvider({ children }) {
   // ── Library Controls (dùng Favorites API) ─────────────────
   const addToLibrary = useCallback(async (track) => {
     const token = localStorage.getItem('token');
-    if (!token) return; // phải login mới dùng được
+    if (!token) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
     try {
       await favoriteAPI.toggle(track.id);
       await loadLibrary();
@@ -227,7 +230,10 @@ export function MusicProvider({ children }) {
 
   const removeFromLibrary = useCallback(async (trackId) => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
     try {
       await favoriteAPI.toggle(trackId);
       await loadLibrary();

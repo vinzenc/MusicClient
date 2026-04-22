@@ -210,6 +210,21 @@ export const favoriteAPI = {
 };
 
 // ════════════════════════════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════════════════════════════
+export const historyAPI = {
+  // Lấy lịch sử nghe nhạc của user
+  getAll: async () => {
+    const res = await get('/history/');
+    const rows = res.data || res || [];
+    return rows.map(normalizeSong);
+  },
+  
+  // Ghi nhận bài hát vào lịch sử
+  add: (songId) => post('/history/', { songId }),
+};
+
+// ════════════════════════════════════════════════════════════════
 //  ADMIN — USERS
 // ════════════════════════════════════════════════════════════════
 export const userAPI = {
@@ -253,4 +268,4 @@ export const healthAPI = {
   check: () => get('/health'),
 };
 
-export default { authAPI, songAPI, favoriteAPI, userAPI, profileAPI, healthAPI };
+export default { authAPI, songAPI, favoriteAPI, historyAPI, userAPI, profileAPI, healthAPI };

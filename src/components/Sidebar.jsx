@@ -7,6 +7,7 @@ const NAV = [
   { to: '/discover', icon: 'explore', label: 'Khám phá' },
   { to: '/library', icon: 'library_music', label: 'Thư viện' },
   { to: '/favorites', icon: 'favorite', label: 'Bài nhạc yêu thích' },
+  { to: '/history', icon: 'history', label: 'Lịch sử nghe nhạc' },
   { to: '/my-music', icon: 'queue_music', label: 'Nhạc của tôi' },
 ];
 

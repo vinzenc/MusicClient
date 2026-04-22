@@ -87,13 +87,13 @@ export default function PlayerFooter() {
           {/* Shuffle */}
           <button
             onClick={toggleShuffle}
-            className={`hover:scale-110 transition-transform ${shuffle ? 'text-teal-neon' : 'text-white/40 hover:text-teal-neon'}`}
+            className={`hover:scale-110 active:scale-90 transition-all ${shuffle ? 'text-teal-neon hover:brightness-125 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]' : 'text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'}`}
           >
             <span className="material-symbols-outlined text-xl">shuffle</span>
           </button>
 
           {/* Prev */}
-          <button onClick={prevTrack} className="text-white/40 hover:text-teal-neon hover:scale-110 transition-transform active:scale-90">
+          <button onClick={prevTrack} className="text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:scale-110 transition-all active:scale-90">
             <span className="material-symbols-outlined text-2xl">skip_previous</span>
           </button>
 
@@ -108,14 +108,14 @@ export default function PlayerFooter() {
           </button>
 
           {/* Next */}
-          <button onClick={nextTrack} className="text-white/40 hover:text-teal-neon hover:scale-110 transition-transform active:scale-90">
+          <button onClick={nextTrack} className="text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] hover:scale-110 transition-all active:scale-90">
             <span className="material-symbols-outlined text-2xl">skip_next</span>
           </button>
 
           {/* Repeat */}
           <button
             onClick={toggleRepeat}
-            className={`hover:scale-110 transition-transform ${repeatActive ? 'text-teal-neon' : 'text-white/40 hover:text-teal-neon'}`}
+            className={`hover:scale-110 active:scale-90 transition-all ${repeatActive ? 'text-teal-neon hover:brightness-125 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]' : 'text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]'}`}
           >
             <span className="material-symbols-outlined text-xl">{repeatIcon}</span>
           </button>
@@ -129,8 +129,22 @@ export default function PlayerFooter() {
             className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group hover:h-2 transition-all"
           >
             <div
-              className="h-full bg-gradient-to-r from-teal-neon to-fuchsia-neon shadow-[0_0_10px_rgba(0,243,255,0.6)] rounded-full transition-none"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-teal-neon to-fuchsia-neon shadow-[0_0_10px_rgba(0,243,255,0.6)] rounded-full transition-none pointer-events-none"
               style={{ width: `${progressPct}%` }}
+            />
+            {/* Thumb */}
+            <div 
+              className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity group-hover:scale-125 z-10"
+              style={{ left: `${progressPct}%`, transform: 'translateX(-50%)' }}
+            />
+            {/* Native input for real-time drag */}
+            <input 
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={progress}
+              onChange={(e) => seek(Number(e.target.value))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0"
             />
           </div>
           <span className="text-[10px] font-label text-white/40 flex-shrink-0 w-8">{fmtTime(duration)}</span>
@@ -144,7 +158,7 @@ export default function PlayerFooter() {
         </button>
 
         <div className="flex items-center gap-2">
-          <button onClick={toggleMute} className="text-white/40 hover:text-yellow-cyber transition-colors flex-shrink-0 hover:scale-110">
+          <button onClick={toggleMute} className="text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-all flex-shrink-0 hover:scale-110 active:scale-90">
             <span className="material-symbols-outlined text-xl">
               {isMuted || volume === 0 ? 'volume_off' : volume < 0.5 ? 'volume_down' : 'volume_up'}
             </span>
@@ -154,8 +168,23 @@ export default function PlayerFooter() {
             className="w-24 h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer hover:h-2.5 transition-all"
           >
             <div
-              className="h-full bg-gradient-to-r from-yellow-cyber to-fuchsia-neon shadow-[0_0_8px_rgba(243,255,0,0.6)] rounded-full transition-none"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-cyber to-fuchsia-neon shadow-[0_0_8px_rgba(243,255,0,0.6)] rounded-full transition-none pointer-events-none"
               style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+            />
+            {/* Thumb */}
+            <div 
+              className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity group-hover:scale-125 z-10"
+              style={{ left: `${isMuted ? 0 : volume * 100}%`, transform: 'translateX(-50%)' }}
+            />
+            {/* Native input for real-time drag */}
+            <input 
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0"
             />
           </div>
         </div>

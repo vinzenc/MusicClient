@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { playlistStore } from '../services/mockStore';
 import { useMusic } from '../contexts/MusicContext';
+import { playlistAPI } from '../services/api';
 
 function fmtTime(sec) {
   if (!sec) return '—';
@@ -13,16 +13,54 @@ export default function PlaylistPage() {
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { currentTrack, isPlaying, play, playAll, removeFromPlaylist, addToLibrary, isInLibrary } = useMusic();
+  const {
+    currentTrack, isPlaying, play, playAll,
+    removeFromPlaylist, addToLibrary, isInLibrary, playlists, deletePlaylist, refreshPlaylists
+  } = useMusic();
 
   const load = async () => {
     setLoading(true);
-    const pl = await playlistStore.getById(Number(id));
-    setPlaylist(pl);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': token ? `Bearer ${token}` : '' };
+
+      // 1. Lấy danh sách bài hát (Dùng fetch trực tiếp)
+      const songsRes = await fetch(`https://musicapi-376j.onrender.com/playlist/${id}/songs`, { method: 'GET', headers });
+      const songsData = await songsRes.json();
+      // Chuẩn hóa dữ liệu bài hát (tương đương normalizeSong)
+      const tracks = (Array.isArray(songsData) ? songsData : (songsData.data || [])).map(s => ({
+        id: s.id || s._id,
+        title: s.title || s.name || 'Không tiêu đề',
+        artist: s.artist || s.artist_name || 'Không rõ ca sĩ',
+        album: s.album || 'Đơn lẻ',
+        cover_url: s.cover_url || s.image || '',
+        url: s.url || s.audio_url || '',
+        duration: s.duration || 0
+      }));
+
+      // 2. Lấy thông tin tên playlist (Dùng fetch trực tiếp tới /playlist/)
+      const plRes = await fetch(`https://musicapi-376j.onrender.com/playlist/`, { method: 'GET', headers });
+      const plData = await plRes.json();
+      const allPlaylists = Array.isArray(plData) ? plData : (plData.playlists || plData.data || []);
+
+      const plMeta = allPlaylists.find(p => String(p.id || p._id) === String(id));
+      const metaName = plMeta ? (plMeta.playlist_name || plMeta.name || plMeta.title) : '';
+
+      setPlaylist({
+        id: id,
+        name: metaName || 'Playlist Chưa Đặt Tên',
+        cover_url: plMeta?.cover_url || '',
+        description: plMeta?.description || '',
+        tracks: tracks
+      });
+    } catch (error) {
+      console.error("Failed to load playlist", error);
+      setPlaylist(null);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [id, playlists]);
 
   const handleRemoveTrack = async (trackId) => {
     await removeFromPlaylist(Number(id), trackId);
@@ -84,11 +122,34 @@ export default function PlaylistPage() {
                 </button>
               </>
             )}
+
+            <button
+              onClick={async () => {
+                if (window.confirm(`Bạn có chắc muốn xóa playlist "${playlist.name}"?`)) {
+                  try {
+                    const token = localStorage.getItem('token');
+                    await fetch(`https://musicapi-376j.onrender.com/playlist/${id}`, {
+                      method: 'DELETE',
+                      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+                    });
+                    await refreshPlaylists();
+                    navigate('/library');
+                  } catch (e) {
+                    alert("Lỗi khi xóa playlist");
+                  }
+                }
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full hover:bg-red-500/20 transition-all text-sm"
+            >
+              <span className="material-symbols-outlined text-base">delete</span>
+              Xóa Playlist
+            </button>
+
             <button
               onClick={() => navigate('/library')}
               className="flex items-center gap-2 px-6 py-3 border border-white/10 text-white/50 rounded-full hover:text-white hover:border-white/20 transition-all text-sm"
             >
-              ← Thư viện
+              ← Quay lại
             </button>
           </div>
         </div>
@@ -120,9 +181,8 @@ export default function PlaylistPage() {
                 <div
                   key={track.id}
                   onClick={() => play(track, playlist.tracks)}
-                  className={`grid grid-cols-[32px_1fr_200px_60px_40px] gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border items-center ${
-                    isActive ? 'bg-teal-neon/10 border-teal-neon/30' : 'border-transparent hover:bg-white/5 hover:border-white/10'
-                  }`}
+                  className={`grid grid-cols-[32px_1fr_200px_60px_40px] gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border items-center ${isActive ? 'bg-teal-neon/10 border-teal-neon/30' : 'border-transparent hover:bg-white/5 hover:border-white/10'
+                    }`}
                 >
                   <div className="text-center">
                     {isActive && isPlaying ? (

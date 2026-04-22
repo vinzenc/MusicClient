@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { songAPI, favoriteAPI } from '../services/api';
-// Playlist & UI-only data vẫn dùng mockStore (chưa có API backend)
-import { playlistStore } from '../services/mockStore';
+import { songAPI, favoriteAPI, playlistAPI } from '../services/api';
 
 const MusicContext = createContext();
 
@@ -61,7 +59,7 @@ export function MusicProvider({ children }) {
   const handleEnded = useCallback(() => {
     if (repeat === 'one') {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => { });
     } else {
       nextTrack();
     }
@@ -76,6 +74,22 @@ export function MusicProvider({ children }) {
     } catch { setLibrary([]); }
   }, []);
 
+  const loadPlaylists = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch(`https://musicapi-376j.onrender.com/playlist/`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const resData = await response.json();
+      const list = resData.data || (Array.isArray(resData) ? resData : []);
+      setPlaylists(list);
+    } catch (e) {
+      console.error('loadPlaylists error:', e);
+    }
+  }, []);
+
   const loadHomeData = useCallback(async () => {
     // Lấy nhạc approved từ backend (trending = 8 bài đầu, featured = 3 bài)
     try {
@@ -88,8 +102,8 @@ export function MusicProvider({ children }) {
       setFeaturedTracks([]);
     }
     loadLibrary();
-    playlistStore.getAll().then(setPlaylists);
-  }, [loadLibrary]);
+    loadPlaylists();
+  }, [loadLibrary, loadPlaylists]);
 
   // ── Load initial data ──────────────────────────────────────
   useEffect(() => {
@@ -105,7 +119,7 @@ export function MusicProvider({ children }) {
 
     // Nếu cùng track đang play → chỉ resume
     if (currentTrack?.id === track.id && audio.src) {
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
       return;
     }
 
@@ -143,7 +157,7 @@ export function MusicProvider({ children }) {
   }, []);
 
   const resume = useCallback(() => {
-    audioRef.current?.play().catch(() => {});
+    audioRef.current?.play().catch(() => { });
   }, []);
 
   const togglePlay = useCallback((track = null) => {
@@ -247,20 +261,71 @@ export function MusicProvider({ children }) {
   }, [library]);
 
   // ── Playlist Controls ──────────────────────────────────────
-  const createPlaylist = useCallback(async (name, description = '') => {
-    const pl = await playlistStore.create(name, description);
-    setPlaylists(await playlistStore.getAll());
-    return pl;
-  }, []);
+  const createPlaylist = useCallback(async (name) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return null;
+    }
+    try {
+      const response = await fetch(`https://musicapi-376j.onrender.com/playlist/add`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playlistName: name })
+      });
+      const pl = await response.json();
+      await loadPlaylists();
+      return pl;
+    } catch (e) {
+      console.error('createPlaylist error:', e);
+      return null;
+    }
+  }, [loadPlaylists]);
+
+  const deletePlaylist = useCallback(async (playlistId) => {
+    try {
+      await playlistAPI.remove(playlistId);
+      await loadPlaylists();
+    } catch (e) {
+      console.error('deletePlaylist error:', e);
+    }
+  }, [loadPlaylists]);
 
   const addToPlaylist = useCallback(async (playlistId, trackId) => {
-    await playlistStore.addTrack(playlistId, trackId);
-    setPlaylists(await playlistStore.getAll());
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Vui lòng đăng nhập!');
+      return;
+    }
+    try {
+      // Sử dụng endpoint user cung cấp: /playlist//:id/songs
+      const response = await fetch(`https://musicapi-376j.onrender.com/playlist//${playlistId}/songs`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ songId: trackId })
+      });
+      
+      const result = await response.json();
+      if (response.ok) {
+        alert('Đã thêm vào playlist!');
+        await loadPlaylists();
+      } else {
+        alert(result.message || 'Lỗi khi thêm vào playlist');
+      }
+    } catch (e) {
+      console.error('addToPlaylist error:', e);
+      alert('Lỗi kết nối Server');
+    }
+  }, [loadPlaylists]);
 
   const removeFromPlaylist = useCallback(async (playlistId, trackId) => {
-    await playlistStore.removeTrack(playlistId, trackId);
-    setPlaylists(await playlistStore.getAll());
+    console.warn("Chưa có API để xóa bài hát khỏi playlist");
   }, []);
 
   // Legacy compat
@@ -287,10 +352,10 @@ export function MusicProvider({ children }) {
       loadHomeData,
       // Actions
       addToLibrary, removeFromLibrary, isInLibrary,
-      createPlaylist, addToPlaylist, removeFromPlaylist,
+      createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist,
       // Refresh
       refreshLibrary: loadLibrary,
-      refreshPlaylists: () => playlistStore.getAll().then(setPlaylists),
+      refreshPlaylists: loadPlaylists,
     }}>
       {children}
     </MusicContext.Provider>

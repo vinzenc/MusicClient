@@ -48,7 +48,7 @@ export default function LibraryPage() {
     <div>
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold text-white mb-1">📚 Thư viện</h1>
+          <h1 className="text-3xl font-extrabold text-white mb-1">📚 Playlist</h1>
           <p className="text-white/40 text-sm">Nhạc yêu thích và danh sách phát của bạn</p>
         </div>
         {tab === 'playlists' && (
@@ -120,11 +120,10 @@ export default function LibraryPage() {
                 <div
                   key={track.id}
                   onClick={() => selectMode ? toggleSelect(track.id) : play(track, library)}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border ${
-                    isActive ? 'bg-teal-neon/10 border-teal-neon/30' :
-                    sel ? 'bg-fuchsia-neon/10 border-fuchsia-neon/30' :
-                    'border-transparent hover:bg-white/5 hover:border-white/10'
-                  }`}
+                  className={`flex items-center gap-4 px-4 py-3 rounded-xl group cursor-pointer transition-all border ${isActive ? 'bg-teal-neon/10 border-teal-neon/30' :
+                      sel ? 'bg-fuchsia-neon/10 border-fuchsia-neon/30' :
+                        'border-transparent hover:bg-white/5 hover:border-white/10'
+                    }`}
                 >
                   {selectMode ? (
                     <div className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${sel ? 'bg-fuchsia-neon border-fuchsia-neon' : 'border-white/30'}`}>
@@ -193,9 +192,9 @@ export default function LibraryPage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
               {playlists.map(pl => (
-                <div
-                  key={pl.id}
-                  onClick={() => navigate(`/playlist/${pl.id}`)}
+                <div 
+                  key={pl.id || pl._id} 
+                  onClick={() => navigate(`/playlist/${pl.id || pl._id}`)}
                   className="group flex flex-col gap-3 p-4 rounded-2xl cursor-pointer border border-transparent hover:bg-white/5 hover:border-white/10 transition-all"
                 >
                   {pl.cover_url ? (
@@ -206,8 +205,8 @@ export default function LibraryPage() {
                     </div>
                   )}
                   <div>
-                    <p className="font-bold text-white text-sm truncate group-hover:text-fuchsia-neon transition-colors">{pl.name}</p>
-                    <p className="text-xs text-white/40">{pl.trackIds.length} bài</p>
+                    <p className="font-bold text-white text-sm truncate group-hover:text-fuchsia-neon transition-colors">{pl.playlist_name || pl.name || pl.title || 'Playlist Chưa có tên'}</p>
+                    <p className="text-xs text-white/40">{(pl.trackIds || pl.songs || pl.tracks || []).length} bài</p>
                   </div>
                 </div>
               ))}

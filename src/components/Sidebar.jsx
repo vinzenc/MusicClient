@@ -5,14 +5,14 @@ import { useMusic } from '../contexts/MusicContext';
 const NAV = [
   { to: '/', icon: 'home', label: 'Trang chủ', end: true },
   { to: '/discover', icon: 'explore', label: 'Khám phá' },
-  { to: '/library', icon: 'library_music', label: 'Thư viện' },
+  { to: '/library', icon: 'library_music', label: 'Playlist' },
   { to: '/favorites', icon: 'favorite', label: 'Bài nhạc yêu thích' },
   { to: '/my-music', icon: 'queue_music', label: 'Nhạc của tôi' },
 ];
 
 export default function Sidebar() {
   const { user, logout, isAdmin } = useAuth();
-  const { playlists } = useMusic();
+  const { playlists, deletePlaylist } = useMusic();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -32,10 +32,9 @@ export default function Sidebar() {
         {NAV.map(n => (
           <NavLink key={n.to} to={n.to} end={n.end}
             className={({ isActive }) =>
-              `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? 'text-teal-neon font-bold bg-fuchsia-neon/5 glow-teal'
-                  : 'text-white/60 hover:text-fuchsia-neon hover:bg-white/5'
+              `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                ? 'text-teal-neon font-bold bg-fuchsia-neon/5 glow-teal'
+                : 'text-white/60 hover:text-fuchsia-neon hover:bg-white/5'
               }`
             }
           >
@@ -49,15 +48,27 @@ export default function Sidebar() {
           <div className="pt-4 mt-4 border-t border-white/5">
             <p className="text-[10px] uppercase tracking-widest text-white/30 px-4 mb-2">Danh sách phát</p>
             {playlists.map(pl => (
-              <NavLink key={pl.id} to={`/playlist/${pl.id}`}
+              <NavLink key={pl.id || pl._id} to={`/playlist/${pl.id || pl._id}`}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
-                    isActive ? 'text-teal-neon bg-white/5' : 'text-white/50 hover:text-white hover:bg-white/5'
+                  `flex items-center justify-between px-4 py-2 rounded-lg transition-all duration-200 group ${isActive ? 'text-teal-neon bg-white/5' : 'text-white/50 hover:text-white hover:bg-white/5'
                   }`
                 }
               >
-                <span className="material-symbols-outlined text-base">playlist_play</span>
-                <span className="text-xs truncate">{pl.name}</span>
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <span className="material-symbols-outlined text-base">playlist_play</span>
+                  <span className="text-xs truncate">{pl.playlist_name || pl.name || pl.title || 'Playlist Chưa có tên'}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (window.confirm(`Bạn có chắc muốn xóa playlist "${pl.playlist_name || pl.name || pl.title}"?`)) {
+                      deletePlaylist(pl.id || pl._id);
+                    }
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span>
+                </button>
               </NavLink>
             ))}
           </div>
@@ -71,10 +82,9 @@ export default function Sidebar() {
           <NavLink
             to="/admin"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border ${
-                isActive
-                  ? 'bg-fuchsia-neon/20 border-fuchsia-neon/40 text-fuchsia-neon'
-                  : 'border-transparent bg-fuchsia-neon/10 text-fuchsia-neon hover:bg-fuchsia-neon/20 hover:border-fuchsia-neon/30'
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border ${isActive
+                ? 'bg-fuchsia-neon/20 border-fuchsia-neon/40 text-fuchsia-neon'
+                : 'border-transparent bg-fuchsia-neon/10 text-fuchsia-neon hover:bg-fuchsia-neon/20 hover:border-fuchsia-neon/30'
               }`
             }
           >

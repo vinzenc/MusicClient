@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 
-const EMPTY = { title: '', artist: '', album: '', duration: '', preview_url: '', cover_url: '', deezer_id: '', genre: '', status: 'active' };
+const EMPTY = { title: '', artist: '', album: '', preview_url: '', cover_url: '', genre: '', status: 'active' };
 
 const inp = { width: '100%', padding: '10px 13px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 
-export default function TrackFormModal({ track, onSave, onClose }) {
+export default function TrackFormModal({ track, onSave, onClose, isCollaborator = false }) {
     const [form, setForm] = useState(EMPTY);
+    const [audioFile, setAudioFile] = useState(null);
+    const [coverFile, setCoverFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState('');
 
     useEffect(() => {
-        setForm(track ? { ...EMPTY, ...track, duration: track.duration || '' } : EMPTY);
+        setForm(track ? { ...EMPTY, ...track } : EMPTY);
     }, [track]);
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -18,8 +20,25 @@ export default function TrackFormModal({ track, onSave, onClose }) {
     const onSubmit = async (e) => {
         e.preventDefault();
         if (!form.title.trim() || !form.artist.trim()) { setErr('Tên bài và nghệ sĩ là bắt buộc!'); return; }
+        
         setSaving(true); setErr('');
-        try { await onSave({ ...form, duration: parseInt(form.duration) || 0 }); }
+        try { 
+            let dataToSave;
+            if (isCollaborator) {
+                // Build FormData for multipart upload
+                const fd = new FormData();
+                fd.append('title', form.title.trim());
+                fd.append('artist', form.artist.trim());
+                fd.append('album', form.album || '');
+                fd.append('genre', form.genre || '');
+                if (audioFile) fd.append('audio', audioFile);
+                if (coverFile) fd.append('cover', coverFile);
+                dataToSave = fd;
+            } else {
+                dataToSave = { ...form };
+            }
+            await onSave(dataToSave); 
+        }
         catch (e) { setErr(e.message); }
         finally { setSaving(false); }
     };
@@ -59,31 +78,39 @@ export default function TrackFormModal({ track, onSave, onClose }) {
                             <input style={inp} value={form.genre} onChange={e => set('genre', e.target.value)} placeholder="Pop, Rock..." />
                         </label>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Thời lượng (giây)</span>
-                            <input type="number" min={0} style={inp} value={form.duration} onChange={e => set('duration', e.target.value)} placeholder="VD: 210" />
-                        </label>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Deezer ID</span>
-                            <input style={inp} value={form.deezer_id} onChange={e => set('deezer_id', e.target.value)} placeholder="ID trên Deezer" />
-                        </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                        {/* Removed Duration and Deezer ID fields as they are now automated */}
                     </div>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>URL Preview (30s)</span>
-                        <input style={inp} value={form.preview_url} onChange={e => set('preview_url', e.target.value)} placeholder="https://..." />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>URL Cover</span>
-                        <input style={inp} value={form.cover_url} onChange={e => set('cover_url', e.target.value)} placeholder="https://..." />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Trạng thái</span>
-                        <select value={form.status} onChange={e => set('status', e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </label>
+                    {isCollaborator ? (
+                        <>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>File Nhạc (MP3/WAV) *</span>
+                                <input type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files[0])} style={inp} required={!track} />
+                            </label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Ảnh bìa</span>
+                                <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files[0])} style={inp} />
+                            </label>
+                        </>
+                    ) : (
+                        <>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>URL Preview (30s)</span>
+                                <input style={inp} value={form.preview_url} onChange={e => set('preview_url', e.target.value)} placeholder="https://..." />
+                            </label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>URL Cover</span>
+                                <input style={inp} value={form.cover_url} onChange={e => set('cover_url', e.target.value)} placeholder="https://..." />
+                            </label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Trạng thái</span>
+                                <select value={form.status} onChange={e => set('status', e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </label>
+                        </>
+                    )}
 
                     {err && <p style={{ color: '#ef4444', fontSize: 13 }}>❌ {err}</p>}
 

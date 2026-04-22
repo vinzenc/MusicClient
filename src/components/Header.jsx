@@ -16,7 +16,7 @@ function useDebounce(value, delay) {
 }
 
 export default function Header() {
-  const { user, logout, isAdmin, loading } = useAuth();
+  const { user, logout, isAdmin, isCollaborator, loading } = useAuth();
   const { play } = useMusic();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -274,6 +274,22 @@ export default function Header() {
           </button>
         )}
 
+        {/* Collaborator Dashboard Button — chỉ hiện với CTV */}
+        {isCollaborator && (
+          <button
+            onClick={() => navigate('/collaborator')}
+            title="Collaborator Dashboard"
+            className="relative flex items-center justify-center w-9 h-9 rounded-full border border-teal-neon/30 bg-teal-neon/10 hover:bg-teal-neon/25 hover:border-teal-neon/70 transition-all group shadow-[0_0_12px_rgba(0,255,255,0.15)] hover:shadow-[0_0_20px_rgba(0,255,255,0.4)]"
+          >
+            <span
+              className="material-symbols-outlined text-teal-neon text-[18px] group-hover:scale-110 transition-transform"
+            >
+              dashboard
+            </span>
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-teal-neon rounded-full border-2 border-synth-deep animate-pulse shadow-[0_0_6px_rgba(0,255,255,0.8)]" />
+          </button>
+        )}
+
         {/* KHU VỰC AVATAR & TÊN NGƯỜI DÙNG */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -335,6 +351,18 @@ export default function Header() {
                       <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
                       <span>Admin Panel</span>
                       <span className="ml-auto text-[10px] bg-fuchsia-neon/20 text-fuchsia-neon px-1.5 py-0.5 rounded">ADMIN</span>
+                    </button>
+                  )}
+
+                  {/* Collaborator Dashboard — only for CTV */}
+                  {isCollaborator && (
+                    <button
+                      onClick={() => { navigate('/collaborator'); setDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-teal-neon hover:text-white hover:bg-teal-neon/15 transition-all flex items-center gap-3 font-semibold border-b border-teal-neon/10"
+                    >
+                      <span className="material-symbols-outlined text-lg">dashboard</span>
+                      <span>Cộng tác viên</span>
+                      <span className="ml-auto text-[10px] bg-teal-neon/20 text-teal-neon px-1.5 py-0.5 rounded">CTV</span>
                     </button>
                   )}
 

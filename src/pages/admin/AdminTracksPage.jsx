@@ -40,7 +40,7 @@ export default function AdminTracksPage() {
         try {
             // status: '' = tất cả, 'active' = approved, 'inactive' = rejected
             const apiStatus = statusFilter === 'active' ? 'approved'
-                            : statusFilter === 'inactive' ? 'rejected' : '';
+                : statusFilter === 'inactive' ? 'rejected' : '';
             const res = await songAPI.getAll({ search, status: apiStatus, page, limit: LIMIT });
             setTracks(res.data || []);
             setTotal(res.total || 0);

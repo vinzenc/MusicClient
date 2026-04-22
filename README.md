@@ -43,12 +43,6 @@ npm run build
 npm run preview
 ```
 
-## 📚 Documentation
-
-- **[API Setup Guide](./API_SETUP.md)** - Configure API endpoints and environment
-- **[Backend Reference](./BACKEND_API_REFERENCE.md)** - Detailed API spec for backend team
-- **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to Vercel, Netlify, or VPS
-
 ## 🏗️ Project Structure
 
 ```
@@ -155,8 +149,6 @@ netlify deploy --prod
 # Then set VITE_API_BASE_URL in Netlify UI
 ```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment options.
-
 ## 🐛 Error Handling
 
 All API calls have built-in error handling:
@@ -168,7 +160,7 @@ All API calls have built-in error handling:
 
 Frontend expects backend API at the URL configured in `.env.local`.
 
-**Required endpoints:** See [BACKEND_API_REFERENCE.md](./BACKEND_API_REFERENCE.md)
+**Required endpoints:**
 
 Quick checklist:
 - ✅ Auth endpoints (login, register, logout, me)
@@ -189,10 +181,10 @@ Quick checklist:
 
 ## 🎯 Next Steps
 
-1. **Setup Backend** - Follow [BACKEND_API_REFERENCE.md](./BACKEND_API_REFERENCE.md)
+1. **Setup Backend** - Ensure your backend API is running.
 2. **Configure API URL** - Set in `.env.local`
 3. **Test Locally** - Run `npm run dev`
-4. **Deploy** - Follow [DEPLOYMENT.md](./DEPLOYMENT.md)
+4. **Deploy** - Build and deploy to your preferred platform.
 
 ## 📄 License
 

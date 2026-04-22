@@ -74,7 +74,6 @@ export default function AdminDashboard() {
                         { icon: '🎵', label: 'Quản lý nhạc', desc: 'Thêm / sửa / xóa bài hát' },
                         { icon: '👤', label: 'Quản lý user', desc: 'Phân quyền, thêm / xóa tài khoản' },
                         { icon: '⏳', label: 'Duyệt đề xuất', desc: 'Approve hoặc reject bài nhạc' },
-                        { icon: '🔍', label: 'Tìm từ Deezer', desc: 'Thêm nhạc vào thư viện mock' },
                     ].map(item => (
                         <div key={item.label} style={{
                             background: 'rgba(255,255,255,0.04)', borderRadius: 12,

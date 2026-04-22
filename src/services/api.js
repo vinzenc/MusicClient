@@ -2,7 +2,7 @@
 //  API CLIENT — kết nối thật với MusicAPI backend
 // ════════════════════════════════════════════════════════════════
 
-const BASE = 'https://musicapi-376j.onrender.com';
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Lấy token từ localStorage
 const getToken = () => localStorage.getItem('token');
@@ -111,6 +111,13 @@ export const songAPI = {
       result.total = result.data.length;
     }
     return result;
+  },
+
+  // Lấy nhạc của chính CTV đang đăng nhập
+  getMyUploads: async ({ page = 1, limit = 10 } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    const res = await get(`/music/my-uploads?${params}`);
+    return normalizeList(res);
   },
 
   getById: async (id) => {

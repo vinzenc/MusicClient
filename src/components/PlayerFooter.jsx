@@ -20,18 +20,25 @@ export default function PlayerFooter() {
   const progressPct = duration > 0 ? (progress / duration) * 100 : 0;
   const inLibrary = currentTrack ? isInLibrary(currentTrack.id) : false;
 
-  const handleProgressClick = useCallback((e) => {
-    if (!duration) return;
+  const startDrag = useCallback((e, type) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    seek(Math.max(0, Math.min(duration, pct * duration)));
-  }, [duration, seek]);
-
-  const handleVolumeClick = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    setVolume(Math.max(0, Math.min(1, pct)));
-  }, [setVolume]);
+    const update = (moveE) => {
+      const pct = (moveE.clientX - rect.left) / rect.width;
+      const val = Math.max(0, Math.min(1, pct));
+      if (type === 'progress') {
+        if (duration) seek(val * duration);
+      } else {
+        setVolume(val);
+      }
+    };
+    update(e);
+    const stop = () => {
+      window.removeEventListener('mousemove', update);
+      window.removeEventListener('mouseup', stop);
+    };
+    window.addEventListener('mousemove', update);
+    window.addEventListener('mouseup', stop);
+  }, [duration, seek, setVolume]);
 
   const repeatIcon = repeat === 'one' ? 'repeat_one' : 'repeat';
   const repeatActive = repeat !== 'none';

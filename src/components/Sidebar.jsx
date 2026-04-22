@@ -12,7 +12,7 @@ const NAV = [
 ];
 
 export default function Sidebar() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isCollaborator } = useAuth();
   const { playlists } = useMusic();
   const navigate = useNavigate();
 
@@ -84,6 +84,25 @@ export default function Sidebar() {
             </span>
             <span className="text-sm font-bold">{user.role === 'admin' ? 'Admin Panel' : 'CTV Dashboard'}</span>
             <span className="ml-auto w-2 h-2 rounded-full bg-fuchsia-neon animate-pulse shadow-[0_0_6px_rgba(255,0,255,0.8)]" />
+          </NavLink>
+        )}
+
+        {/* Collaborator Dashboard shortcut */}
+        {isCollaborator && (
+          <NavLink
+            to="/collaborator"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border ${
+                isActive
+                  ? 'bg-teal-neon/20 border-teal-neon/40 text-teal-neon font-bold'
+                  : 'border-transparent bg-teal-neon/10 text-teal-neon hover:bg-teal-neon/20 hover:border-teal-neon/30'
+              }`
+            }
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              dashboard
+            </span>
+            <span className="text-sm font-bold">CTV Dashboard</span>
           </NavLink>
         )}
 

@@ -22,12 +22,10 @@ function Toast({ msg, type, onDone }) {
     );
 }
 
-export default function AdminTracksPage() {
+export default function CollaboratorDashboard() {
     const [tracks, setTracks] = useState([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [modal, setModal] = useState({ open: false, track: null });
     const [toast, setToast] = useState(null);
@@ -38,76 +36,54 @@ export default function AdminTracksPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            // status: '' = tất cả, 'active' = approved, 'inactive' = rejected
-            const apiStatus = statusFilter === 'active' ? 'approved'
-                : statusFilter === 'inactive' ? 'rejected' : '';
-            const res = await songAPI.getAll({ search, status: apiStatus, page, limit: LIMIT });
+            const res = await songAPI.getMyUploads({ page, limit: LIMIT });
             setTracks(res.data || []);
             setTotal(res.total || 0);
+        } catch (e) {
+            notify(e.message || 'Lỗi khi tải danh sách nhạc', 'err');
         } finally { setLoading(false); }
-    }, [search, statusFilter, page]);
+    }, [page]);
 
     useEffect(() => { load(); }, [load]);
-
-    const handleDelete = async (id, title) => {
-        if (!confirm(`Xóa track "${title}"?`)) return;
-        await songAPI.remove(id);
-        notify(`Đã xóa "${title}"`);
-        load();
-    };
 
     const handleSave = async (data) => {
         try {
             if (modal.track) {
                 await songAPI.update(modal.track.id, data);
-                notify('Đã cập nhật track!');
+                notify('Đã cập nhật yêu cầu chỉnh sửa!');
             } else {
-                await songAPI.create(data);
-                notify('Đã thêm track mới!');
+                await songAPI.createMultipart(data); // CTV thường dùng multipart cho file thật
+                notify('Đã gửi nhạc lên, vui lòng chờ duyệt!');
             }
             setModal({ open: false, track: null });
             load();
         } catch (e) {
-            notify(e.message || 'Lỗi khi lưu track', 'err');
+            notify(e.message || 'Lỗi khi lưu nhạc', 'err');
         }
     };
 
     const totalPages = Math.ceil(total / LIMIT);
 
     return (
-        <div>
+        <div className="p-8 pb-32">
             {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                 <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0' }}>🎵 Quản lý nhạc</h1>
-                    <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>{total} bài nhạc trong hệ thống</p>
+                    <h1 style={{ fontSize: 24, fontWeight: 800, color: '#e2e8f0' }}>🎨 Dashboard Cộng tác viên</h1>
+                    <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>Bạn đã tải lên {total} bài hát</p>
                 </div>
                 <button onClick={() => setModal({ open: true, track: null })} style={{
                     padding: '10px 22px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    background: 'linear-gradient(135deg,#a78bfa,#7c3aed)', color: '#fff', fontWeight: 700, fontSize: 14,
+                    background: 'linear-gradient(135deg,#2dd4bf,#0d9488)', color: '#fff', fontWeight: 700, fontSize: 14,
                     transition: 'opacity 0.2s',
                 }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                 >
-                    + Thêm track
+                    + Upload nhạc mới
                 </button>
-            </div>
-
-            {/* Toolbar */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-                <input placeholder="🔍 Tên bài, nghệ sĩ, album..." value={search}
-                    onChange={e => { setSearch(e.target.value); setPage(1); }}
-                    style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', fontSize: 14, outline: 'none' }}
-                />
-                <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                    style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,12,41,0.9)', color: '#e2e8f0', fontSize: 14 }}>
-                    <option value="">Tất cả</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
             </div>
 
             {/* Table */}
@@ -115,10 +91,10 @@ export default function AdminTracksPage() {
                 <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>⏳ Đang tải...</div>
             ) : tracks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 60, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                    <div style={{ fontSize: 48 }}>🎵</div>
-                    <p style={{ color: '#64748b', marginTop: 12 }}>Chưa có track nào</p>
-                    <button onClick={() => setModal({ open: true, track: null })} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'rgba(167,139,250,0.2)', color: '#a78bfa', fontWeight: 600, cursor: 'pointer' }}>
-                        + Thêm track đầu tiên
+                    <div style={{ fontSize: 48 }}>📤</div>
+                    <p style={{ color: '#64748b', marginTop: 12 }}>Bạn chưa tải lên bài hát nào</p>
+                    <button onClick={() => setModal({ open: true, track: null })} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 10, border: 'none', background: 'rgba(45,212,191,0.2)', color: '#2dd4bf', fontWeight: 600, cursor: 'pointer' }}>
+                        Tải lên bài đầu tiên
                     </button>
                 </div>
             ) : (
@@ -127,7 +103,7 @@ export default function AdminTracksPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                                    {['#', 'Cover', 'Tên bài / Artist', 'Người đăng', 'Album', 'Thời gian', 'Trạng thái', 'Thao tác'].map(h => (
+                                    {['#', 'Ảnh', 'Tên bài / Artist', 'Album', 'Dài', 'Trạng thái', 'Thao tác'].map(h => (
                                         <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 13 }}>{h}</th>
                                     ))}
                                 </tr>
@@ -141,38 +117,30 @@ export default function AdminTracksPage() {
                                         <td style={{ padding: '11px 14px', color: '#4b5563', fontSize: 12 }}>#{t.id}</td>
                                         <td style={{ padding: '11px 14px' }}>
                                             {t.cover_url
-                                                ? <img src={t.cover_url} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />
-                                                : <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(167,139,250,0.2)', display: 'grid', placeItems: 'center', fontSize: 18 }}>🎵</div>
+                                                ? <img src={t.cover_url} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
+                                                : <div style={{ width: 40, height: 40, borderRadius: 6, background: 'rgba(45,212,191,0.2)', display: 'grid', placeItems: 'center', fontSize: 16 }}>🎵</div>
                                             }
                                         </td>
-                                        <td style={{ padding: '11px 14px', maxWidth: 220 }}>
+                                        <td style={{ padding: '11px 14px', maxWidth: 200 }}>
                                             <div style={{ fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-                                            <div style={{ fontSize: 12, color: '#a78bfa', marginTop: 2 }}>{t.artist}</div>
+                                            <div style={{ fontSize: 12, color: '#2dd4bf', marginTop: 2 }}>{t.artist}</div>
                                         </td>
-                                        <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13 }}>
-                                            {t.uploaderName || 'System'}
-                                        </td>
-                                        <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13, maxWidth: 140 }}>
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{t.album || '—'}</span>
-                                        </td>
+                                        <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13 }}>{t.album || '—'}</td>
                                         <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13 }}>{formatDur(t.duration)}</td>
                                         <td style={{ padding: '11px 14px' }}>
                                             <span style={{
-                                                padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                                                background: t.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                                                color: t.status === 'active' ? '#10b981' : '#ef4444',
+                                                padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                                background: t.approvalStatus === 'approved' ? 'rgba(16,185,129,0.15)' : t.approvalStatus === 'rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
+                                                color: t.approvalStatus === 'approved' ? '#10b981' : t.approvalStatus === 'rejected' ? '#ef4444' : '#eab308',
+                                                textTransform: 'uppercase'
                                             }}>
-                                                {t.status === 'active' ? '● Active' : '○ Inactive'}
+                                                {t.approvalStatus === 'approved' ? 'Đã duyệt' : t.approvalStatus === 'rejected' ? 'Từ chối' : 'Đang chờ'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                        <td style={{ padding: '11px 14px' }}>
                                             <button onClick={() => setModal({ open: true, track: t })}
-                                                style={{ marginRight: 8, padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'rgba(96,165,250,0.15)', color: '#60a5fa', fontWeight: 600, fontSize: 13 }}>
-                                                ✏️
-                                            </button>
-                                            <button onClick={() => handleDelete(t.id, t.title)}
-                                                style={{ padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 600, fontSize: 13 }}>
-                                                🗑️
+                                                style={{ padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12 }}>
+                                                Sửa
                                             </button>
                                         </td>
                                     </tr>
@@ -199,7 +167,12 @@ export default function AdminTracksPage() {
             )}
 
             {modal.open && (
-                <TrackFormModal track={modal.track} onSave={handleSave} onClose={() => setModal({ open: false, track: null })} />
+                <TrackFormModal 
+                    track={modal.track} 
+                    onSave={handleSave} 
+                    onClose={() => setModal({ open: false, track: null })}
+                    isCollaborator={true} 
+                />
             )}
 
             <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:none } }`}</style>

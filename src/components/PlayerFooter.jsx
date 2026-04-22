@@ -20,18 +20,25 @@ export default function PlayerFooter() {
   const progressPct = duration > 0 ? (progress / duration) * 100 : 0;
   const inLibrary = currentTrack ? isInLibrary(currentTrack.id) : false;
 
-  const handleProgressClick = useCallback((e) => {
-    if (!duration) return;
+  const startDrag = useCallback((e, type) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    seek(Math.max(0, Math.min(duration, pct * duration)));
-  }, [duration, seek]);
-
-  const handleVolumeClick = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    setVolume(Math.max(0, Math.min(1, pct)));
-  }, [setVolume]);
+    const update = (moveE) => {
+      const pct = (moveE.clientX - rect.left) / rect.width;
+      const val = Math.max(0, Math.min(1, pct));
+      if (type === 'progress') {
+        if (duration) seek(val * duration);
+      } else {
+        setVolume(val);
+      }
+    };
+    update(e);
+    const stop = () => {
+      window.removeEventListener('mousemove', update);
+      window.removeEventListener('mouseup', stop);
+    };
+    window.addEventListener('mousemove', update);
+    window.addEventListener('mouseup', stop);
+  }, [duration, seek, setVolume]);
 
   const repeatIcon = repeat === 'one' ? 'repeat_one' : 'repeat';
   const repeatActive = repeat !== 'none';
@@ -117,8 +124,10 @@ export default function PlayerFooter() {
         {/* Progress Bar */}
         <div className="w-full flex items-center gap-3">
           <span className="text-[10px] font-label text-white/40 flex-shrink-0 w-8 text-right">{fmtTime(progress)}</span>
-          <div className="relative flex-1 h-1.5 bg-white/10 rounded-full group hover:h-2 transition-all flex items-center">
-            {/* Progress fill */}
+          <div
+            onMouseDown={e => startDrag(e, 'progress')}
+            className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group hover:h-2 transition-all"
+          >
             <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-teal-neon to-fuchsia-neon shadow-[0_0_10px_rgba(0,243,255,0.6)] rounded-full transition-none pointer-events-none"
               style={{ width: `${progressPct}%` }}
@@ -154,8 +163,10 @@ export default function PlayerFooter() {
               {isMuted || volume === 0 ? 'volume_off' : volume < 0.5 ? 'volume_down' : 'volume_up'}
             </span>
           </button>
-          <div className="relative w-24 h-2 bg-white/10 rounded-full group hover:h-2.5 transition-all flex items-center">
-            {/* Volume fill */}
+          <div
+            onMouseDown={e => startDrag(e, 'volume')}
+            className="w-24 h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer hover:h-2.5 transition-all"
+          >
             <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-cyber to-fuchsia-neon shadow-[0_0_8px_rgba(243,255,0,0.6)] rounded-full transition-none pointer-events-none"
               style={{ width: `${isMuted ? 0 : volume * 100}%` }}

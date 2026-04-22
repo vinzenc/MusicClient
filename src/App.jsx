@@ -15,6 +15,7 @@ import LibraryPage from './pages/LibraryPage';
 import PlaylistPage from './pages/PlaylistPage';
 import MyMusicPage from './pages/MyMusicPage';
 import ProfilePage from './pages/ProfilePage';
+import FavoritesPage from './pages/FavoritesPage';
 
 // ── Admin Pages ─────────────────────────────────────────────────
 import AdminLayout from './pages/admin/AdminLayout';
@@ -37,6 +38,7 @@ function App() {
             <Route path="/playlist/:id" element={<PlaylistPage />} />
             <Route path="/my-music" element={<MyMusicPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
           </Route>
 
           {/* ── Auth ── */}

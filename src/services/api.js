@@ -2,7 +2,7 @@
 //  API CLIENT — kết nối thật với MusicAPI backend
 // ════════════════════════════════════════════════════════════════
 
-const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const BASE = 'https://musicapi-376j.onrender.com';
 
 // Lấy token từ localStorage
 const getToken = () => localStorage.getItem('token');
@@ -35,20 +35,20 @@ async function request(path, options = {}) {
 }
 
 // ── Helper shorthand ─────────────────────────────────────────────
-const get  = (path, opts)  => request(path, { method: 'GET',    ...opts });
-const post = (path, body)  => request(path, { method: 'POST',   body: body instanceof FormData ? body : JSON.stringify(body) });
-const put  = (path, body)  => request(path, { method: 'PUT',    body: body instanceof FormData ? body : JSON.stringify(body) });
-const patch = (path, body) => request(path, { method: 'PATCH',  body: JSON.stringify(body) });
-const del  = (path)        => request(path, { method: 'DELETE' });
+const get = (path, opts) => request(path, { method: 'GET', ...opts });
+const post = (path, body) => request(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) });
+const put = (path, body) => request(path, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) });
+const patch = (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) });
+const del = (path) => request(path, { method: 'DELETE' });
 
 // ════════════════════════════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════════════════════════════
 export const authAPI = {
-  login:          (email, password)          => post('/auth/login',           { email, password }),
-  register:       (name, email, password)    => post('/auth/register',        { name, email, password }),
-  forgotPassword: (email)                    => post('/auth/forgot-password', { email }),
-  resetPassword:  (email, otp, newPassword)  => post('/auth/reset-password',  { email, otp, newPassword }),
+  login: (email, password) => post('/auth/login', { email, password }),
+  register: (name, email, password) => post('/auth/register', { name, email, password }),
+  forgotPassword: (email) => post('/auth/forgot-password', { email }),
+  resetPassword: (email, otp, newPassword) => post('/auth/reset-password', { email, otp, newPassword }),
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -61,15 +61,15 @@ function normalizeSong(s) {
   return {
     ...s,
     // UI fields
-    cover_url:   s.cover_url   || s.coverUrl   || '',
-    preview_url: s.preview_url || s.audioUrl   || '',
+    cover_url: s.cover_url || s.coverUrl || '',
+    preview_url: s.preview_url || s.audioUrl || '',
     // Giữ lại backend fields để không mất thông tin
-    coverUrl:    s.coverUrl    || s.cover_url  || '',
-    audioUrl:    s.audioUrl    || s.preview_url || '',
+    coverUrl: s.coverUrl || s.cover_url || '',
+    audioUrl: s.audioUrl || s.preview_url || '',
     // status theo dạng string đơn giản
     status: s.approvalStatus === 'approved' ? 'active'
-          : s.approvalStatus === 'rejected' ? 'rejected'
-          : s.approvalStatus || s.status || 'pending',
+      : s.approvalStatus === 'rejected' ? 'rejected'
+        : s.approvalStatus || s.status || 'pending',
     approvalStatus: s.approvalStatus || (s.status === 'active' ? 'approved' : s.status) || 'pending',
   };
 }
@@ -79,7 +79,7 @@ function normalizeList(res) {
   if (Array.isArray(res)) return { data: res.map(normalizeSong), total: res.length };
   const rows = res.rows || res.data || [];
   return {
-    data:  rows.map(normalizeSong),
+    data: rows.map(normalizeSong),
     total: res.total ?? rows.length,
   };
 }
@@ -121,14 +121,14 @@ export const songAPI = {
   // Tạo bài hát bằng JSON (URL đã có sẵn)
   create: async (payload) => {
     const res = await post('/music/songs', {
-      title:       payload.title,
-      artist:      payload.artist,
-      album:       payload.album       || '',
-      genre:       payload.genre       || '',
-      duration:    payload.duration    || 0,
+      title: payload.title,
+      artist: payload.artist,
+      album: payload.album || '',
+      genre: payload.genre || '',
+      duration: payload.duration || 0,
       releaseYear: payload.releaseYear || null,
-      audioUrl:    payload.audioUrl    || payload.preview_url || null,
-      coverUrl:    payload.coverUrl    || payload.cover_url   || null,
+      audioUrl: payload.audioUrl || payload.preview_url || null,
+      coverUrl: payload.coverUrl || payload.cover_url || null,
       cloudinaryId: payload.cloudinaryId || null,
     });
     return normalizeSong(res);
@@ -146,14 +146,14 @@ export const songAPI = {
   // Cập nhật bài hát bằng JSON
   update: async (id, payload) => {
     const res = await put(`/music/songs/${id}`, {
-      title:       payload.title,
-      artist:      payload.artist,
-      album:       payload.album       || '',
-      genre:       payload.genre       || '',
-      duration:    payload.duration    || 0,
+      title: payload.title,
+      artist: payload.artist,
+      album: payload.album || '',
+      genre: payload.genre || '',
+      duration: payload.duration || 0,
       releaseYear: payload.releaseYear || null,
-      audioUrl:    payload.audioUrl    || payload.preview_url || undefined,
-      coverUrl:    payload.coverUrl    || payload.cover_url   || undefined,
+      audioUrl: payload.audioUrl || payload.preview_url || undefined,
+      coverUrl: payload.coverUrl || payload.cover_url || undefined,
     });
     return normalizeSong(res);
   },
@@ -242,8 +242,8 @@ export const userAPI = {
 //  PROFILE (user tự đổi)
 // ════════════════════════════════════════════════════════════════
 export const profileAPI = {
-  update:          (name, email)                  => put('/profile',          { name, email }),
-  changePassword:  (oldPassword, newPassword)     => put('/profile/password', { oldPassword, newPassword }),
+  update: (name, email) => put('/profile', { name, email }),
+  changePassword: (oldPassword, newPassword) => put('/profile/password', { oldPassword, newPassword }),
 };
 
 // ════════════════════════════════════════════════════════════════

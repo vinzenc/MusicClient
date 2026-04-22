@@ -127,7 +127,7 @@ export default function AdminTracksPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                                    {['#', 'Cover', 'Tên bài / Artist', 'Album', 'Thời gian', 'Trạng thái', 'Thao tác'].map(h => (
+                                    {['#', 'Cover', 'Tên bài / Artist', 'Người đăng', 'Album', 'Thời gian', 'Trạng thái', 'Thao tác'].map(h => (
                                         <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 13 }}>{h}</th>
                                     ))}
                                 </tr>
@@ -148,6 +148,9 @@ export default function AdminTracksPage() {
                                         <td style={{ padding: '11px 14px', maxWidth: 220 }}>
                                             <div style={{ fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
                                             <div style={{ fontSize: 12, color: '#a78bfa', marginTop: 2 }}>{t.artist}</div>
+                                        </td>
+                                        <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13 }}>
+                                            {t.uploaderName || 'System'}
                                         </td>
                                         <td style={{ padding: '11px 14px', color: '#64748b', fontSize: 13, maxWidth: 140 }}>
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{t.album || '—'}</span>

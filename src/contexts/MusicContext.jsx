@@ -40,7 +40,6 @@ export function MusicProvider({ children }) {
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('durationchange', onDurationChange);
-    audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('error', onError);
@@ -49,7 +48,6 @@ export function MusicProvider({ children }) {
       audio.pause();
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('durationchange', onDurationChange);
-      audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('error', onError);
@@ -198,10 +196,20 @@ export function MusicProvider({ children }) {
       return;
     }
     if (queue.length === 0) return;
-    const prevIdx = Math.max(0, queueIndex - 1);
+    
+    let prevIdx;
+    if (shuffle) {
+      prevIdx = Math.floor(Math.random() * queue.length);
+    } else {
+      prevIdx = queueIndex - 1;
+      if (prevIdx < 0) {
+        if (repeat === 'all') prevIdx = queue.length - 1;
+        else prevIdx = 0;
+      }
+    }
     setQueueIndex(prevIdx);
     play(queue[prevIdx], queue);
-  }, [queue, queueIndex, play]);
+  }, [queue, queueIndex, play, shuffle, repeat]);
 
   const seek = useCallback((time) => {
     if (audioRef.current) {
@@ -341,6 +349,24 @@ export function MusicProvider({ children }) {
   };
   const skipTrack = (dir) => dir === 'next' ? nextTrack() : prevTrack();
   const togglePlayPause = () => { if (isPlaying) pause(); else resume(); };
+
+  const handleEnded = useCallback(() => {
+    if (repeat === 'one') {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+    } else {
+      nextTrack();
+    }
+  }, [repeat, nextTrack]);
+
+  // Cập nhật onended mỗi khi handleEnded thay đổi (tránh lỗi stale closure)
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.onended = handleEnded;
+    }
+  }, [handleEnded]);
 
   return (
     <MusicContext.Provider value={{

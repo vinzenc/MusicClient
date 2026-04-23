@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useMusic } from '../contexts/MusicContext';
 
 function fmtTime(s) {
@@ -14,8 +14,11 @@ export default function PlayerFooter() {
     volume, isMuted, shuffle, repeat,
     togglePlay, nextTrack, prevTrack, seek,
     setVolume, toggleMute, toggleShuffle, toggleRepeat,
-    addToLibrary, isInLibrary,
+    addToLibrary, isInLibrary, playlists, addToPlaylist
   } = useMusic();
+
+  const [showPlaylistPopover, setShowPlaylistPopover] = useState(false);
+  const popoverRef = useRef(null);
 
   const progressPct = duration > 0 ? (progress / duration) * 100 : 0;
   const inLibrary = currentTrack ? isInLibrary(currentTrack.id) : false;
@@ -43,7 +46,23 @@ export default function PlayerFooter() {
   const repeatIcon = repeat === 'one' ? 'repeat_one' : 'repeat';
   const repeatActive = repeat !== 'none';
 
-  if (!currentTrack) return null;
+  // Đóng popover khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setShowPlaylistPopover(false);
+      }
+    };
+    if (showPlaylistPopover) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPlaylistPopover]);
+
+  const handleAddToPlaylist = async (playlistId) => {
+    if (!currentTrack) return;
+    await addToPlaylist(playlistId, currentTrack.id);
+    alert('Đã gửi yêu cầu thêm bài hát vào playlist!');
+    setShowPlaylistPopover(false);
+  };
 
   return (
     <footer className="fixed bottom-0 left-0 w-full h-24 bg-synth-magenta/40 backdrop-blur-3xl border-t border-fuchsia-neon/20 flex items-center justify-between px-8 z-50 shadow-[0_-10px_50px_rgba(0,0,0,0.7)]">
@@ -151,9 +170,39 @@ export default function PlayerFooter() {
 
       {/* ── Right: Volume ── */}
       <div className="flex items-center justify-end gap-4 w-1/4">
-        <button className="text-white/40 hover:text-teal-neon transition-colors flex-shrink-0">
-          <span className="material-symbols-outlined text-xl">queue_music</span>
-        </button>
+        <div className="relative flex items-center" ref={popoverRef}>
+          <button 
+            onClick={() => setShowPlaylistPopover(!showPlaylistPopover)}
+            title="Thêm vào playlist"
+            className="text-white/40 hover:text-teal-neon transition-colors flex-shrink-0"
+          >
+            <span className="material-symbols-outlined text-xl">queue_music</span>
+          </button>
+
+          {/* Popover chọn playlist */}
+          {showPlaylistPopover && (
+            <div className="absolute bottom-full right-0 mb-4 w-48 bg-synth-deep/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_-5px_30px_rgba(0,0,0,0.5)] overflow-hidden z-[60]">
+              <div className="px-3 py-2 border-b border-white/5 bg-white/5">
+                <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Thêm vào playlist</p>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {playlists.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-white/40">Chưa có playlist nào</div>
+                ) : (
+                  playlists.map(pl => (
+                    <button
+                      key={pl.id || pl._id}
+                      onClick={() => handleAddToPlaylist(pl.id || pl._id)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors truncate"
+                    >
+                      {pl.playlist_name || pl.name || pl.title || 'Playlist Chưa có tên'}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <button onClick={toggleMute} className="text-white/40 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-all flex-shrink-0 hover:scale-110 active:scale-90">

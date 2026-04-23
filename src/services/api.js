@@ -26,6 +26,11 @@ async function request(path, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Có thể thêm window.location.reload() nếu muốn force user về login
+    }
     const err = new Error(data.message || `HTTP ${res.status}`);
     err.status = res.status;
     err.data = data;
@@ -275,4 +280,24 @@ export const healthAPI = {
   check: () => get('/health'),
 };
 
-export default { authAPI, songAPI, favoriteAPI, historyAPI, userAPI, profileAPI, healthAPI };
+// ════════════════════════════════════════════════════════════════
+//  PLAYLIST
+// ════════════════════════════════════════════════════════════════
+export const playlistAPI = {
+  getAll: async () => {
+    const res = await get('/playlist/');
+    return res.data || res || [];
+  },
+  create: async (name) => {
+    const res = await post('/playlist/add', { playlistName: name });
+    return res.data || res;
+  },
+  remove: async (id) => del(`/playlist/${id}`),
+  getSongs: async (id) => {
+    const res = await get(`/playlist/${id}/songs`);
+    const rows = res.data || res || [];
+    return Array.isArray(rows) ? rows.map(normalizeSong) : rows;
+  },
+};
+
+export default { authAPI, songAPI, favoriteAPI, userAPI, profileAPI, healthAPI, playlistAPI };

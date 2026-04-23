@@ -245,18 +245,18 @@ export default function Header() {
                       )}
                     </div>
                   </div>
-                  {/* Admin/Collaborator Dashboard */}
-                  {(user.role === 'admin' || user.role === 'collaborator') && (
+                  {/* Admin Dashboard */}
+                  {user.role === 'admin' && (
                     <button
                       onClick={() => { navigate('/admin'); setDropdownOpen(false); }}
                       className="w-full text-left px-4 py-2 text-fuchsia-neon hover:text-white hover:bg-fuchsia-neon/15 transition-all flex items-center gap-3 font-semibold border-b border-fuchsia-neon/10"
                     >
                       <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-                        {user.role === 'admin' ? 'admin_panel_settings' : 'dashboard'}
+                        admin_panel_settings
                       </span>
-                      <span>{user.role === 'admin' ? 'Admin Panel' : 'Cộng tác viên'}</span>
+                      <span>Admin Panel</span>
                       <span className="ml-auto text-[10px] bg-fuchsia-neon/20 text-fuchsia-neon px-1.5 py-0.5 rounded">
-                        {user.role === 'admin' ? 'ADMIN' : 'CTV'}
+                        ADMIN
                       </span>
                     </button>
                   )}
